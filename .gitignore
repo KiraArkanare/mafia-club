@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Visual Studio служебные файлы
+.vs/
+*.vsidx
+*.suo
+*.user
