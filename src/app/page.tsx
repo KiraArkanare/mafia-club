@@ -13,10 +13,10 @@ function UserIcon() {
     );
 }
 
-/* Крупная 3D Изометрическая графика на фоне */
+//* Крупная 3D Изометрическая графика на фоне */
 function IsometricBackgroundTable() {
     return (
-        <div className="absolute top-12 -right-20 w-[900px] h-[900px] pointer-events-none opacity-60 mix-blend-screen transition-transform duration-700 ease-out group-hover:scale-105 z-0">
+        <div className="absolute top-0 -right-16 w-[850px] h-[850px] pointer-events-none opacity-60 mix-blend-screen transition-transform duration-700 ease-out group-hover:scale-105 z-0">
             {/* Неоновый градиент на фоне */}
             <div
                 className="absolute inset-0 rounded-full blur-3xl opacity-40"
@@ -25,11 +25,11 @@ function IsometricBackgroundTable() {
                 }}
             />
 
-            {/* 3D Наклон и разворот стола по твоим оси с эскиза */}
+            {/* 3D Поворот по осям эскиза */}
             <div
                 className="w-full h-full flex items-center justify-center"
                 style={{
-                    transform: "perspective(1200px) rotateX(38deg) rotateZ(35deg)",
+                    transform: "perspective(1200px) rotateX(-50deg) rotateZ(-30deg)",
                     transformStyle: "preserve-3d"
                 }}
             >
@@ -273,9 +273,12 @@ export default function Home() {
             </header>
 
             {/* MAIN */}
-            <main className="pt-20 min-h-screen flex items-center justify-center px-6 pb-12">
+            <main className="pt-28 min-h-screen flex items-center justify-center px-6 pb-12 relative overflow-hidden group">
+
+                <IsometricBackgroundTable />
+
                 <div
-                    className="relative w-full max-w-5xl mx-auto"
+                    className="relative w-full max-w-5xl mx-auto z-10"
                     style={{
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr",
@@ -396,9 +399,6 @@ export default function Home() {
                             </button>
                         </div>
                     </div>
-
-                    {/* RIGHT — Графика стола */}
-                    <IsometricBackgroundTable />
                 </div>
             </main>
 
