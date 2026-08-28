@@ -1,11 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800;900&family=Nunito:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 html,
 body,
 #root {
     height: 100%;
-    background: #080b10;
+    background: #070d14;
     color: #e8eaf0;
 }
 
@@ -25,25 +25,4 @@ body,
 ::-webkit-scrollbar-thumb {
     background: #1e2535;
     border-radius: 2px;
-}
-
-.glow-effect {
-    box-shadow: 0 0 35px rgba(56, 189, 248, 0.15), 0 0 15px rgba(52, 211, 153, 0.1);
-}
-
-@theme inline {
-    --font-display: 'Unbounded', sans-serif;
-    --font-body: 'Inter', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --color-bg: #080b10;
-    --color-surface: #0d1117;
-    --color-panel: #111827;
-    --color-border: #1e2a3a;
-    --color-border-bright: #2a3a52;
-    --color-accent: #c9292e;
-    --color-accent-dim: rgba(201, 41, 46, 0.15);
-    --color-accent-gold: #d4a017;
-    --color-text-primary: #e8eaf0;
-    --color-text-secondary: #8892a4;
-    --color-text-muted: #4a5568;
 }

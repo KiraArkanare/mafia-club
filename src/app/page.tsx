@@ -13,86 +13,71 @@ function UserIcon() {
     );
 }
 
-/* Интерактивный неоновый стол мафии */
-function MafiaTableGraphic() {
-    const [hoveredRole, setHoveredRole] = useState<string | null>(null);
-
+/* Изометрический фоновый стол мафии */
+function IsometricBackgroundTable() {
     return (
-        <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center">
-            {/* Фоновый неоновый градиент */}
+        <div className="absolute top-1/2 -right-12 -translate-y-1/2 w-[650px] h-[650px] pointer-events-none opacity-40 mix-blend-screen transition-transform duration-700 ease-out group-hover:scale-105 group-hover:-rotate-3">
+            {/* Неоновое фоновое свечение */}
             <div
-                className="absolute inset-0 rounded-full opacity-30 blur-3xl pointer-events-none"
+                className="absolute inset-0 rounded-full blur-3xl opacity-30"
                 style={{
-                    background: "radial-gradient(circle, rgba(56,189,248,0.35) 0%, rgba(52,211,153,0.15) 60%, transparent 70%)"
+                    background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.15) 50%, transparent 70%)"
                 }}
             />
 
-            {/* Основная SVG графика */}
-            <svg viewBox="0 0 420 420" fill="none" className="w-full h-full relative z-10">
-                <defs>
-                    <filter id="glow-strong">
-                        <feGaussianBlur stdDeviation="5" result="coloredBlur" />
-                        <feMerge>
-                            <feMergeNode in="coloredBlur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                    <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stopColor="#38bdf8" />
-                        <stop offset="100%" stopColor="#34d399" />
-                    </linearGradient>
-                </defs>
+            {/* 3D Изометрическая проекция */}
+            <div
+                className="w-full h-full flex items-center justify-center"
+                style={{
+                    transform: "perspective(1000px) rotateX(60deg) rotateZ(-20deg)",
+                    transformStyle: "preserve-3d"
+                }}
+            >
+                <svg viewBox="0 0 500 500" fill="none" className="w-full h-full">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="4" result="blur" />
+                            <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                        </filter>
+                        <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#38bdf8" />
+                            <stop offset="100%" stopColor="#34d399" />
+                        </linearGradient>
+                    </defs>
 
-                {/* Внешняя орбита */}
-                <circle cx="210" cy="210" r="180" stroke="#1e3a4a" strokeWidth="1" strokeDasharray="6 8" opacity="0.4" />
-                <circle cx="210" cy="210" r="150" stroke="url(#cyanGrad)" strokeWidth="1.5" opacity="0.25" />
+                    {/* Внешние сетчатые кольца */}
+                    <circle cx="250" cy="250" r="230" stroke="#1e2d3d" strokeWidth="1.5" strokeDasharray="8 8" />
+                    <circle cx="250" cy="250" r="190" stroke="url(#grad)" strokeWidth="1.5" opacity="0.3" filter="url(#glow)" />
 
-                {/* Игровой стол */}
-                <circle cx="210" cy="210" r="120" fill="#0b131e" stroke="#1e2d3d" strokeWidth="2" />
-                <circle cx="210" cy="210" r="110" stroke="#162535" strokeWidth="1" strokeDasharray="3 3" />
+                    {/* Контур стола */}
+                    <circle cx="250" cy="250" r="150" fill="#0b131e" stroke="#1e3a4a" strokeWidth="2" />
+                    <circle cx="250" cy="250" r="135" stroke="#142332" strokeWidth="1" strokeDasharray="4 4" />
 
-                {/* Центральный чип клуба */}
-                <circle cx="210" cy="210" r="42" fill="#070d14" stroke="url(#cyanGrad)" strokeWidth="2" filter="url(#glow-strong)" />
-                <text x="210" y="217" textAnchor="middle" fontSize="20" fill="#fff" fontFamily="var(--font-display)" fontWeight="900">
-                    КМ
-                </text>
+                    {/* Центр */}
+                    <circle cx="250" cy="250" r="50" fill="#070d14" stroke="url(#grad)" strokeWidth="2" filter="url(#glow)" />
 
-                {/* 10 Слотов игроков вокруг стола */}
-                {Array.from({ length: 10 }).map((_, i) => {
-                    const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
-                    const r = 120;
-                    const cx = 210 + Math.cos(angle) * r;
-                    const cy = 210 + Math.sin(angle) * r;
-                    const isMafia = [0, 3, 7].includes(i);
-                    const isSheriff = i === 5;
-                    const roleName = isSheriff ? "Шериф" : isMafia ? "Мафия" : "Мирный";
-                    const color = isMafia ? "#f43f5e" : isSheriff ? "#38bdf8" : "#34d399";
+                    {/* 10 Слотов вокруг стола */}
+                    {Array.from({ length: 10 }).map((_, i) => {
+                        const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
+                        const r = 150;
+                        const cx = 250 + Math.cos(angle) * r;
+                        const cy = 250 + Math.sin(angle) * r;
+                        const isMafia = [0, 3, 7].includes(i);
+                        const isSheriff = i === 5;
+                        const color = isMafia ? "#f43f5e" : isSheriff ? "#38bdf8" : "#34d399";
 
-                    return (
-                        <g
-                            key={i}
-                            className="cursor-pointer transition-transform duration-200"
-                            onMouseEnter={() => setHoveredRole(roleName)}
-                            onMouseLeave={() => setHoveredRole(null)}
-                        >
-                            <line x1="210" y1="210" x2={cx} y2={cy} stroke={color} strokeWidth="1" opacity="0.15" />
-                            <circle cx={cx} cy={cy} r="15" fill="#0d1722" stroke={color} strokeWidth="2" />
-                            <circle cx={cx} cy={cy} r="5" fill={color} filter="url(#glow-strong)" />
-                            <text x={cx} y={cy + 4} textAnchor="middle" fontSize="10" fill="#fff" fontWeight="800" fontFamily="sans-serif">
-                                {i + 1}
-                            </text>
-                        </g>
-                    );
-                })}
-            </svg>
-
-            {/* Динамическая плашка с ролью */}
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-[#0f1923]/90 backdrop-blur-md border border-slate-800 text-xs text-center z-20 pointer-events-none transition-all">
-                {hoveredRole ? (
-                    <span>Роль слота: <strong className="text-sky-400">{hoveredRole}</strong></span>
-                ) : (
-                    <span className="text-slate-400">Наведи на слот игрока</span>
-                )}
+                        return (
+                            <g key={i}>
+                                <line x1="250" y1="250" x2={cx} y2={cy} stroke={color} strokeWidth="1" opacity="0.2" />
+                                <circle cx={cx} cy={cy} r="16" fill="#09121c" stroke={color} strokeWidth="2" />
+                                <circle cx={cx} cy={cy} r="6" fill={color} filter="url(#glow)" />
+                            </g>
+                        );
+                    })}
+                </svg>
             </div>
         </div>
     );
@@ -100,7 +85,7 @@ function MafiaTableGraphic() {
 
 function Logo() {
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
             <div className="relative w-8 h-8 flex-shrink-0">
                 <Image
                     src="/logo.png"
@@ -111,10 +96,10 @@ function Logo() {
                     priority
                 />
             </div>
-            <div style={{ fontFamily: "var(--font-display)", lineHeight: 1 }}>
-                <span className="font-extrabold tracking-tight text-sm text-slate-100">КАМЕНСК</span>
+            <div className="flex items-center font-bold tracking-tight text-sm">
+                <span className="text-slate-100">КАМЕНСК</span>
                 <span
-                    className="font-black tracking-tight text-sm ml-1"
+                    className="ml-1 font-extrabold"
                     style={{
                         background: "linear-gradient(90deg, #38bdf8, #34d399)",
                         WebkitBackgroundClip: "text",
@@ -146,28 +131,19 @@ export default function Home() {
     ];
 
     return (
-        <div className="min-h-full overflow-x-hidden" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
+        <div className="min-h-screen bg-[#070d14] text-slate-100 font-sans relative overflow-hidden group">
 
             {/* HEADER */}
-            <header
-                className="fixed top-0 left-0 right-0 z-40"
-                style={{
-                    height: "64px",
-                    background: "rgba(7,13,20,0.85)",
-                    borderBottom: "1px solid #142030",
-                    backdropFilter: "blur(16px)",
-                }}
-            >
+            <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-[#070d14]/80 backdrop-blur-md border-b border-slate-800/80">
                 <div className="h-full px-6 md:px-10 flex items-center justify-between max-w-7xl mx-auto">
                     <Logo />
 
-                    <nav className="hidden md:flex items-center gap-2">
+                    <nav className="hidden md:flex items-center gap-6">
                         {["Игроки", "Рейтинг", "Игры"].map((link) => (
                             <a
                                 key={link}
                                 href="#"
-                                className="px-4 py-2 text-xs rounded-xl transition-all hover:text-sky-400"
-                                style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "#6a8a9a" }}
+                                className="text-xs font-semibold text-slate-400 hover:text-sky-400 transition-colors"
                             >
                                 {link}
                             </a>
@@ -175,8 +151,7 @@ export default function Home() {
                     </nav>
 
                     <button
-                        className="w-9 h-9 rounded-xl flex items-center justify-center transition-all text-slate-400 hover:text-white"
-                        style={{ background: "#0f1e2e", border: "1px solid #1e3a4a" }}
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-white bg-[#0d1622] border border-slate-800 hover:border-slate-700 transition-all"
                         title="Войти в систему"
                     >
                         <UserIcon />
@@ -184,107 +159,75 @@ export default function Home() {
                 </div>
             </header>
 
-            {/* MAIN */}
-            <main className="pt-24 min-h-screen flex items-center justify-center px-6 pb-12">
-                <div className="relative w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* MAIN CONTENT */}
+            <main className="pt-32 pb-16 px-6 relative z-10 max-w-7xl mx-auto flex items-center min-h-[calc(100vh-80px)]">
+                <div className="max-w-2xl">
 
-                    {/* LEFT CONTENT */}
-                    <div className="lg:col-span-7 z-10">
-                        <div
-                            className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl mb-6"
-                            style={{
-                                background: "linear-gradient(135deg, rgba(14,140,106,0.15) 0%, rgba(26,107,138,0.15) 100%)",
-                                border: "1px solid rgba(52,211,153,0.25)",
-                            }}
-                        >
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                            <span style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", fontWeight: 800 }} className="text-emerald-400 uppercase tracking-wider">
-                                Сезон 1 активен
-                            </span>
-                        </div>
-
-                        <h1
-                            className="mb-6 uppercase"
-                            style={{
-                                fontFamily: "var(--font-display)",
-                                fontSize: "clamp(2.2rem, 4.5vw, 3.8rem)",
-                                fontWeight: 900,
-                                lineHeight: 1.1,
-                                letterSpacing: "-0.03em",
-                                color: "#f1f5f9",
-                            }}
-                        >
-                            Спортивная
-                            <br />
-                            <span
-                                style={{
-                                    background: "linear-gradient(95deg, #38bdf8 0%, #34d399 100%)",
-                                    WebkitBackgroundClip: "text",
-                                    WebkitTextFillColor: "transparent",
-                                }}
-                            >
-                                Мафия
-                            </span>
-                        </h1>
-
-                        <p className="mb-8 text-slate-400 text-sm md:text-base max-w-lg leading-relaxed">
-                            Интеллектуальный клуб Каменска-Шахтинского. Полная статистика партий, рейтинги игроков и аналитика турниров.
-                        </p>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                            {STATS.map((s, i) => (
-                                <div
-                                    key={s.label}
-                                    className="p-4 rounded-2xl transition-all"
-                                    style={{
-                                        background: i === 0 ? "linear-gradient(135deg, rgba(26,107,138,0.2) 0%, rgba(14,140,106,0.15) 100%)" : "#0d1520",
-                                        border: i === 0 ? "1px solid rgba(56,189,248,0.3)" : "1px solid #162332",
-                                    }}
-                                >
-                                    <div
-                                        style={{
-                                            fontFamily: "var(--font-display)",
-                                            fontSize: "1.5rem",
-                                            fontWeight: 800,
-                                        }}
-                                        className="text-sky-400 mb-1"
-                                    >
-                                        {s.value}
-                                    </div>
-                                    <div className="text-xs font-semibold text-slate-200">{s.label}</div>
-                                    <div className="text-[10px] text-slate-500">{s.sub}</div>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="flex flex-wrap gap-4">
-                            <button
-                                className="px-7 py-3.5 rounded-xl text-xs transition-transform hover:scale-105 font-extrabold uppercase tracking-wider"
-                                style={{
-                                    fontFamily: "var(--font-display)",
-                                    background: "linear-gradient(135deg, #38bdf8 0%, #0e8c6a 100%)",
-                                    color: "#fff",
-                                    boxShadow: "0 4px 20px rgba(56,189,248,0.25)"
-                                }}
-                            >
-                                Рейтинг игроков
-                            </button>
-                            <button
-                                className="px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-slate-700 text-slate-300 hover:bg-slate-800"
-                                style={{ fontFamily: "var(--font-display)" }}
-                            >
-                                Архив партий
-                            </button>
-                        </div>
+                    {/* Badge */}
+                    <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-6">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        Сезон 1 активен
                     </div>
 
-                    {/* RIGHT GRAPHIC */}
-                    <div className="lg:col-span-5 flex justify-center items-center relative">
-                        <MafiaTableGraphic />
+                    {/* СТИЛЬНЫЙ ЗАГОЛОВОК (Unbounded применен строго к нему) */}
+                    <h1
+                        className="mb-6 uppercase leading-none tracking-tight font-black"
+                        style={{
+                            fontFamily: "'Unbounded', sans-serif",
+                            fontSize: "clamp(2.4rem, 5vw, 4.2rem)"
+                        }}
+                    >
+                        Спортивная
+                        <br />
+                        <span
+                            style={{
+                                background: "linear-gradient(95deg, #38bdf8 0%, #34d399 100%)",
+                                WebkitBackgroundClip: "text",
+                                WebkitTextFillColor: "transparent",
+                            }}
+                        >
+                            Мафия
+                        </span>
+                    </h1>
+
+                    <p className="mb-8 text-slate-400 text-sm md:text-base max-w-lg leading-relaxed">
+                        Интеллектуальный клуб Каменска-Шахтинского. Полная статистика партий, рейтинги игроков и аналитика турниров.
+                    </p>
+
+                    {/* Карточки статистики */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
+                        {STATS.map((s, i) => (
+                            <div
+                                key={s.label}
+                                className={`p-4 rounded-2xl border transition-all ${i === 0
+                                        ? "bg-sky-500/10 border-sky-500/30"
+                                        : "bg-[#0d1520] border-slate-800/80"
+                                    }`}
+                            >
+                                <div className="text-2xl font-black text-sky-400 mb-0.5">
+                                    {s.value}
+                                </div>
+                                <div className="text-xs font-semibold text-slate-200">{s.label}</div>
+                                <div className="text-[10px] text-slate-500">{s.sub}</div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Кнопки */}
+                    <div className="flex flex-wrap gap-4">
+                        <button className="px-7 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-wider text-white bg-gradient-to-r from-sky-400 to-emerald-500 hover:opacity-95 shadow-lg shadow-sky-500/20 transition-all hover:scale-[1.02]">
+                            Рейтинг игроков
+                        </button>
+                        <button className="px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-slate-300 border border-slate-800 hover:bg-slate-800/50 transition-colors">
+                            Архив партий
+                        </button>
                     </div>
 
                 </div>
             </main>
+
+            {/* ИЗОМЕТРИЧЕСКИЙ ФОН СПРАВА */}
+            <IsometricBackgroundTable />
 
         </div>
     );
