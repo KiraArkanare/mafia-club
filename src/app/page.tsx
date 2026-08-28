@@ -310,10 +310,11 @@ export default function Home() {
                         <h1
                             className="mb-5"
                             style={{
-                                fontFamily: "'Rubik Glitch', cursive",
-                                fontSize: "clamp(2.4rem, 5vw, 4.2rem)",
-                                lineHeight: 1.1,
-                                letterSpacing: "0.02em",
+                                fontFamily: "'Montserrat', sans-serif",
+                                fontSize: "clamp(2.4rem, 5.2vw, 4.2rem)",
+                                fontWeight: 900,
+                                lineHeight: 1.05,
+                                letterSpacing: "-0.03em",
                                 color: "#e2e8f0",
                             }}
                         >
