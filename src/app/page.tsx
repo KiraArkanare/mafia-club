@@ -247,14 +247,18 @@ export default function Home() {
                     <Logo />
 
                     <nav className="hidden md:flex items-center gap-1">
-                        {["Игроки", "Рейтинг", "Игры"].map((link) => (
+                        {[
+                            { name: "Игроки", href: "/players" },
+                            { name: "Рейтинг", href: "/rating" },
+                            { name: "Игры", href: "/games" }
+                        ].map((link) => (
                             <a
-                                key={link}
-                                href="#"
+                                key={link.name}
+                                href={link.href}
                                 className="px-4 py-2 text-base font-bold transition-all hover:text-sky-400"
                                 style={{ fontFamily: "'Nunito', sans-serif", color: "#94a3b8" }}
                             >
-                                {link}
+                                {link.name}
                             </a>
                         ))}
                     </nav>
