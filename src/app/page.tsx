@@ -25,11 +25,11 @@ function IsometricBackgroundTable() {
                 }}
             />
 
-            {/* 3D Наклон и разворот стола на ~45 градусов */}
+            {/* 3D Наклон и разворот стола на ~25 градусов */}
             <div
                 className="w-full h-full flex items-center justify-center"
                 style={{
-                    transform: "perspective(1200px) rotateX(65deg) rotateZ(-45deg)",
+                    transform: "perspective(1200px) rotateX(55deg) rotateZ(-25deg)",
                     transformStyle: "preserve-3d"
                 }}
             >
@@ -310,11 +310,9 @@ export default function Home() {
                         <h1
                             className="mb-5"
                             style={{
-                                fontFamily: "var(--font-display)",
+                                fontFamily: "'Train One', cursive",
                                 fontSize: "clamp(2.6rem, 5.5vw, 4.4rem)",
-                                fontWeight: 900,
-                                lineHeight: 1.05,
-                                letterSpacing: "-0.02em",
+                                lineHeight: 1.15,
                                 color: "#e2e8f0",
                             }}
                         >
