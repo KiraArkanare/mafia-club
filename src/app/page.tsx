@@ -13,24 +13,17 @@ function UserIcon() {
     );
 }
 
-/* Интерактивный неоновый стол с подсветкой при наведении */
+/* Интерактивный неоновый стол мафии */
 function MafiaTableGraphic() {
     const [hoveredRole, setHoveredRole] = useState<string | null>(null);
 
-    const roles = [
-        { title: "Дон", color: "#e05a5a", tag: "Мафия" },
-        { title: "Шериф", color: "#38bdf8", tag: "Город" },
-        { title: "Мафия", color: "#e05a5a", tag: "Мафия" },
-        { title: "Мирный", color: "#34d399", tag: "Город" },
-    ];
-
     return (
-        <div className="relative w-full max-w-[440px] aspect-square flex items-center justify-center group">
-            {/* Фоновый неоновый градиент, связывающий графику с заголовком */}
+        <div className="relative w-full max-w-[420px] aspect-square flex items-center justify-center">
+            {/* Фоновый неоновый градиент */}
             <div
-                className="absolute inset-0 rounded-full opacity-30 blur-3xl transition-all duration-700 group-hover:opacity-50"
+                className="absolute inset-0 rounded-full opacity-30 blur-3xl pointer-events-none"
                 style={{
-                    background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.2) 50%, transparent 70%)"
+                    background: "radial-gradient(circle, rgba(56,189,248,0.35) 0%, rgba(52,211,153,0.15) 60%, transparent 70%)"
                 }}
             />
 
@@ -38,37 +31,36 @@ function MafiaTableGraphic() {
             <svg viewBox="0 0 420 420" fill="none" className="w-full h-full relative z-10">
                 <defs>
                     <filter id="glow-strong">
-                        <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+                        <feGaussianBlur stdDeviation="5" result="coloredBlur" />
                         <feMerge>
                             <feMergeNode in="coloredBlur" />
                             <feMergeNode in="SourceGraphic" />
                         </feMerge>
                     </filter>
+                    <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#38bdf8" />
+                        <stop offset="100%" stopColor="#34d399" />
+                    </linearGradient>
                 </defs>
 
-                {/* Внешние сияющие орбиты */}
-                <circle cx="210" cy="210" r="190" stroke="#1e3a4a" strokeWidth="1" strokeDasharray="6 8" className="animate-[spin_60s_linear_infinite] origin-center opacity-40" />
-                <circle cx="210" cy="210" r="160" stroke="url(#cyanGrad)" strokeWidth="1.5" opacity="0.3" />
-
-                <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#34d399" />
-                </linearGradient>
+                {/* Внешняя орбита */}
+                <circle cx="210" cy="210" r="180" stroke="#1e3a4a" strokeWidth="1" strokeDasharray="6 8" opacity="0.4" />
+                <circle cx="210" cy="210" r="150" stroke="url(#cyanGrad)" strokeWidth="1.5" opacity="0.25" />
 
                 {/* Игровой стол */}
-                <circle cx="210" cy="210" r="125" fill="#0b131e" stroke="#1e2d3d" strokeWidth="2" />
-                <circle cx="210" cy="210" r="115" stroke="#162535" strokeWidth="1" strokeDasharray="3 3" />
+                <circle cx="210" cy="210" r="120" fill="#0b131e" stroke="#1e2d3d" strokeWidth="2" />
+                <circle cx="210" cy="210" r="110" stroke="#162535" strokeWidth="1" strokeDasharray="3 3" />
 
-                {/* Центральный чип / Клубный логотип */}
-                <circle cx="210" cy="210" r="45" fill="#070d14" stroke="url(#cyanGrad)" strokeWidth="2" filter="url(#glow-strong)" />
-                <text x="210" y="217" textAnchor="middle" fontSize="22" fill="#fff" fontFamily="var(--font-display)" fontWeight="900">
+                {/* Центральный чип клуба */}
+                <circle cx="210" cy="210" r="42" fill="#070d14" stroke="url(#cyanGrad)" strokeWidth="2" filter="url(#glow-strong)" />
+                <text x="210" y="217" textAnchor="middle" fontSize="20" fill="#fff" fontFamily="var(--font-display)" fontWeight="900">
                     КМ
                 </text>
 
-                {/* 10 Слотов игроков вокруг стола с реакцией на hover */}
+                {/* 10 Слотов игроков вокруг стола */}
                 {Array.from({ length: 10 }).map((_, i) => {
                     const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
-                    const r = 125;
+                    const r = 120;
                     const cx = 210 + Math.cos(angle) * r;
                     const cy = 210 + Math.sin(angle) * r;
                     const isMafia = [0, 3, 7].includes(i);
@@ -79,16 +71,13 @@ function MafiaTableGraphic() {
                     return (
                         <g
                             key={i}
-                            className="cursor-pointer transition-all duration-300 hover:scale-125 origin-center"
+                            className="cursor-pointer transition-transform duration-200"
                             onMouseEnter={() => setHoveredRole(roleName)}
                             onMouseLeave={() => setHoveredRole(null)}
                         >
-                            {/* Линия связи с центром */}
                             <line x1="210" y1="210" x2={cx} y2={cy} stroke={color} strokeWidth="1" opacity="0.15" />
-
-                            {/* Фишка игрока */}
-                            <circle cx={cx} cy={cy} r="16" fill="#0d1722" stroke={color} strokeWidth="2" />
-                            <circle cx={cx} cy={cy} r="6" fill={color} filter="url(#glow-strong)" />
+                            <circle cx={cx} cy={cy} r="15" fill="#0d1722" stroke={color} strokeWidth="2" />
+                            <circle cx={cx} cy={cy} r="5" fill={color} filter="url(#glow-strong)" />
                             <text x={cx} y={cy + 4} textAnchor="middle" fontSize="10" fill="#fff" fontWeight="800" fontFamily="sans-serif">
                                 {i + 1}
                             </text>
@@ -97,22 +86,21 @@ function MafiaTableGraphic() {
                 })}
             </svg>
 
-            {/* Динамическая плашка в центре при наведении на место */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-[#0f1923]/90 backdrop-blur-md border border-slate-800 text-xs text-center z-20 pointer-events-none transition-all">
-            {hoveredRole ? (
-                <span>Роль слота: <strong className="text-sky-400">{hoveredRole}</strong></span>
-            ) : (
-                <span className="text-slate-400">Наведи на слот игрока</span>
-            )}
+            {/* Динамическая плашка с ролью */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-[#0f1923]/90 backdrop-blur-md border border-slate-800 text-xs text-center z-20 pointer-events-none transition-all">
+                {hoveredRole ? (
+                    <span>Роль слота: <strong className="text-sky-400">{hoveredRole}</strong></span>
+                ) : (
+                    <span className="text-slate-400">Наведи на слот игрока</span>
+                )}
+            </div>
         </div>
-    </div >
-  );
+    );
 }
 
 function Logo() {
     return (
         <div className="flex items-center gap-3">
-            {/* Теперь используем Next.js Image без предупреждений! */}
             <div className="relative w-8 h-8 flex-shrink-0">
                 <Image
                     src="/logo.png"
@@ -152,7 +140,7 @@ export default function Home() {
     }, []);
 
     const STATS = [
-        { label: "Игроков в базе", value: playerCount.toString(), sub: "зарегистрировано" },
+        { label: "Игроков в сезоне", value: playerCount.toString(), sub: "зарегистрировано" },
         { label: "Сыграно партий", value: "0", sub: "с начала сезона" },
         { label: "Побед мирных", value: "0%", sub: "vs 0% мафии" },
     ];
@@ -200,7 +188,7 @@ export default function Home() {
             <main className="pt-24 min-h-screen flex items-center justify-center px-6 pb-12">
                 <div className="relative w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
 
-                    {/* LEFT CONTENT (7 колонок) */}
+                    {/* LEFT CONTENT */}
                     <div className="lg:col-span-7 z-10">
                         <div
                             className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl mb-6"
@@ -215,7 +203,6 @@ export default function Home() {
                             </span>
                         </div>
 
-                        {/* Дерзкий главный заголовок новым шрифтом Unbounded */}
                         <h1
                             className="mb-6 uppercase"
                             style={{
@@ -230,7 +217,6 @@ export default function Home() {
                             Спортивная
                             <br />
                             <span
-                                className="relative"
                                 style={{
                                     background: "linear-gradient(95deg, #38bdf8 0%, #34d399 100%)",
                                     WebkitBackgroundClip: "text",
@@ -245,7 +231,6 @@ export default function Home() {
                             Интеллектуальный клуб Каменска-Шахтинского. Полная статистика партий, рейтинги игроков и аналитика турниров.
                         </p>
 
-                        {/* Статистика */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
                             {STATS.map((s, i) => (
                                 <div
@@ -272,7 +257,6 @@ export default function Home() {
                             ))}
                         </div>
 
-                        {/* Кнопки */}
                         <div className="flex flex-wrap gap-4">
                             <button
                                 className="px-7 py-3.5 rounded-xl text-xs transition-transform hover:scale-105 font-extrabold uppercase tracking-wider"
@@ -294,7 +278,7 @@ export default function Home() {
                         </div>
                     </div>
 
-                    {/* RIGHT GRAPHIC (5 колонок) — теперь с мягким свечением и интерактивом */}
+                    {/* RIGHT GRAPHIC */}
                     <div className="lg:col-span-5 flex justify-center items-center relative">
                         <MafiaTableGraphic />
                     </div>
