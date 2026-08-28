@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 
 function ChevronDownIcon() {
@@ -225,62 +225,58 @@ export default function RatingPage() {
                                     const showDivider = !isQualified && prevQualified;
 
                                     return (
-                                        <tr key={player.name} className="group hover:bg-slate-800/30 transition-colors">
-                                            <td className="py-3.5 text-center font-bold">
-                                                <span className={
-                                                    player.rank === 1 ? "text-amber-400" :
-                                                        player.rank === 2 ? "text-slate-300" :
-                                                            player.rank === 3 ? "text-amber-600" :
-                                                                player.rank <= 5 ? "text-emerald-400" : "text-slate-500"
-                                                }>
-                                                    {player.rank}
-                                                </span>
-                                            </td>
-                                            <td className="py-3.5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-xs font-semibold text-slate-300 flex-shrink-0">
-                                                        {player.name[0]}
-                                                    </div>
-                                                    <span className="font-semibold text-slate-200 group-hover:text-sky-400 transition-colors">
-                                                        {player.name}
+                                        <React.Fragment key={player.name}>
+                                            {/* Разделитель порога номинаций */}
+                                            {showDivider && (
+                                                <tr key="divider-row" className="bg-[#08111a]">
+                                                    <td colSpan={12} className="py-2.5 px-4">
+                                                        <div className="relative flex items-center justify-center">
+                                                            <div className="w-full border-t border-emerald-500/40" />
+                                                            <div className="absolute px-3 py-0.5 rounded-full text-[10px] font-bold text-emerald-300 bg-[#07131e] border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.15)]">
+                                                                Номинация ({QUALIFICATION_LIMIT} игр)
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+
+                                            {/* Строка игрока */}
+                                            <tr className="group hover:bg-slate-800/30 transition-colors">
+                                                <td className="py-3.5 text-center font-bold">
+                                                    <span className={
+                                                        player.rank === 1 ? "text-amber-400" :
+                                                            player.rank === 2 ? "text-slate-300" :
+                                                                player.rank === 3 ? "text-amber-600" :
+                                                                    player.rank <= 5 ? "text-emerald-400" : "text-slate-500"
+                                                    }>
+                                                        {player.rank}
                                                     </span>
-                                                </div>
-                                            </td>
-                                            <td className="py-3.5 text-center font-bold text-slate-100">{player.score}</td>
-
-                                            {/* Блок доп баллов */}
-                                            <td className="py-3.5 text-center text-slate-300 font-mono text-xs">{player.extraSum}</td>
-                                            <td className="py-3.5 text-center text-rose-400 font-mono text-xs font-semibold">{player.penalty}</td>
-                                            <td className="py-3.5 text-center text-slate-300 font-mono text-xs">{player.extraAdd}</td>
-
-                                            <td className="py-3.5 text-center text-slate-400 font-mono text-xs">{player.ci}</td>
-                                            <td className="py-3.5 text-center text-emerald-400 font-semibold">{player.win}</td>
-                                            <td className="py-3.5 text-center text-slate-300 text-xs">{player.don}</td>
-                                            <td className="py-3.5 text-center text-slate-300 text-xs">{player.sheriff}</td>
-                                            <td className="py-3.5 text-center text-slate-300 text-xs">{player.kill}</td>
-                                            <td className="py-3.5 text-center font-bold text-slate-200 pr-4">{player.games}</td>
-                                        </tr>
-                                    );
-
-                                    // Отдельная строка для разделителя порога номинаций
-                                    const dividerRow = showDivider ? (
-                                        <tr key="divider-row" className="bg-[#08111a]">
-                                            <td colSpan={12} className="py-2.5 px-4">
-                                                <div className="relative flex items-center justify-center">
-                                                    <div className="w-full border-t border-emerald-500/40" />
-                                                    <div className="absolute px-3 py-0.5 rounded-full text-[10px] font-bold text-emerald-300 bg-[#07131e] border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.15)]">
-                                                        Номинация ({QUALIFICATION_LIMIT} игр)
+                                                </td>
+                                                <td className="py-3.5">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-xs font-semibold text-slate-300 flex-shrink-0">
+                                                            {player.name[0]}
+                                                        </div>
+                                                        <span className="font-semibold text-slate-200 group-hover:text-sky-400 transition-colors">
+                                                            {player.name}
+                                                        </span>
                                                     </div>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : null;
+                                                </td>
+                                                <td className="py-3.5 text-center font-bold text-slate-100">{player.score}</td>
 
-                                    return (
-                                        <>
-                                            {dividerRow}
-                                            {rowContent}
-                                        </>
+                                                {/* Блок доп баллов */}
+                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs">{player.extraSum}</td>
+                                                <td className="py-3.5 text-center text-rose-400 font-mono text-xs font-semibold">{player.penalty}</td>
+                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs">{player.extraAdd}</td>
+
+                                                <td className="py-3.5 text-center text-slate-400 font-mono text-xs">{player.ci}</td>
+                                                <td className="py-3.5 text-center text-emerald-400 font-semibold">{player.win}</td>
+                                                <td className="py-3.5 text-center text-slate-300 text-xs">{player.don}</td>
+                                                <td className="py-3.5 text-center text-slate-300 text-xs">{player.sheriff}</td>
+                                                <td className="py-3.5 text-center text-slate-300 text-xs">{player.kill}</td>
+                                                <td className="py-3.5 text-center font-bold text-slate-200 pr-4">{player.games}</td>
+                                            </tr>
+                                        </React.Fragment>
                                     );
                                 })}
                             </tbody>
