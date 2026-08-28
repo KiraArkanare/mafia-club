@@ -66,7 +66,7 @@ const MOCK_PLAYERS = [
 ];
 
 const LEGEND_ITEMS = [
-    { code: "Баллы", desc: "Основной игровой счет" },
+    { code: "Баллы", desc: "Общая сумма баллов" },
     { code: "Σ (+/-)", desc: "Сумма доп. баллов" },
     { code: "!", desc: "Дисциплинарные штрафы" },
     { code: "Лх", desc: "Баллы за лучший ход" },
@@ -256,29 +256,46 @@ export default function RatingPage() {
                     }}
                 >
                     <div className="overflow-x-auto max-h-[520px] overflow-y-auto custom-scrollbar">
-                        <table className="w-full min-w-[750px] text-left border-collapse">
+                        <table className="w-full text-left border-collapse table-fixed">
+                            {/* Строгая разметка ширины колонок */}
+                            <colgroup>
+                                <col className="w-16" />        {/* Место */}
+                                <col className="w-48" />        {/* Игрок */}
+                                <col className="w-20" />        {/* Баллы */}
+                                <col className="w-20" />        {/* Σ (+/-) */}
+                                <col className="w-12" />        {/* ! */}
+                                <col className="w-16" />        {/* Лх */}
+                                <col className="w-14" />        {/* Ci */}
+                                <col className="w-12" />        {/* П */}
+                                <col className="w-12" />        {/* Д */}
+                                <col className="w-12" />        {/* Ш */}
+                                <col className="w-12" />        {/* У */}
+                                <col className="w-20" />        {/* Игры */}
+                            </colgroup>
+
                             {/* Sticky Заголовок таблицы */}
                             <thead className="sticky top-0 z-20" style={{ background: "#0b1522" }}>
                                 <tr className="text-slate-400 text-xs border-b border-slate-800">
-                                    <th className="py-4 font-bold w-20 text-center text-slate-400">Место</th>
-                                    <th className="py-4 font-bold text-slate-400 text-center">Игрок</th>
-                                    <th className="py-4 font-bold text-center text-slate-200">Баллы</th>
-                                    <th className="py-4 font-bold text-center border-x border-slate-800/60 px-2" colSpan={3}>
-                                        <div className="text-slate-300 pb-1">Допп баллы</div>
-                                        <div className="grid grid-cols-3 text-[10px] text-slate-500 font-mono tracking-normal text-center">
-                                            <span>Σ (+/-)</span>
-                                            <span>!</span>
-                                            <span>Лх</span>
-                                        </div>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40">Место</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40">Игрок</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center text-slate-100 border-r border-slate-800/40">Баллы</th>
+                                    <th colSpan={3} className="py-1.5 font-bold text-center border-b border-r border-slate-800/60 text-slate-300">
+                                        Допп баллы
                                     </th>
-                                    <th className="py-4 font-bold text-center px-1">Ci</th>
-                                    <th className="py-4 font-bold text-center px-1 text-emerald-400">П</th>
-                                    <th className="py-4 font-bold text-center px-1">Д</th>
-                                    <th className="py-4 font-bold text-center px-1">Ш</th>
-                                    <th className="py-4 font-bold text-center px-1">У</th>
-                                    <th className="py-4 font-bold text-center pr-4">Игры</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40">Ci</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40 text-emerald-400">П</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40">Д</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40">Ш</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center border-r border-slate-800/40">У</th>
+                                    <th rowSpan={2} className="py-3 font-bold text-center">Игры</th>
+                                </tr>
+                                <tr className="text-[10px] text-slate-400 font-mono border-b border-slate-800">
+                                    <th className="py-1.5 text-center border-r border-slate-800/40">Σ (+/-)</th>
+                                    <th className="py-1.5 text-center border-r border-slate-800/40 text-rose-400">!</th>
+                                    <th className="py-1.5 text-center border-r border-slate-800/40">Лх</th>
                                 </tr>
                             </thead>
+
                             <tbody className="text-sm divide-y divide-slate-800/40">
                                 {MOCK_PLAYERS.map((player, index) => {
                                     const isQualified = player.games >= QUALIFICATION_LIMIT;
@@ -287,14 +304,14 @@ export default function RatingPage() {
 
                                     return (
                                         <React.Fragment key={player.name}>
-                                            {/* Разделитель порога номинаций (смещен влево с нахлестом) */}
+                                            {/* Разделитель порога номинаций */}
                                             {showDivider && (
                                                 <tr key="divider-row" className="bg-[#08111a] relative z-10">
                                                     <td colSpan={12} className="py-0 px-4">
                                                         <div className="relative flex items-center justify-start py-2 -my-2">
                                                             <div className="w-full border-t border-emerald-500/40" />
                                                             <div className="absolute left-6 px-3 py-0.5 rounded-full text-[10px] font-bold text-emerald-300 bg-[#07131e] border border-emerald-500/50 shadow-[0_0_12px_rgba(52,211,153,0.25)]">
-                                                                Номинация ({QUALIFICATION_LIMIT} игр)
+                                                                Ном. ({QUALIFICATION_LIMIT} игр)
                                                             </div>
                                                         </div>
                                                     </td>
@@ -303,7 +320,7 @@ export default function RatingPage() {
 
                                             {/* Строка игрока */}
                                             <tr className="group hover:bg-slate-800/30 transition-colors">
-                                                <td className="py-3.5 text-center font-bold">
+                                                <td className="py-3 text-center font-bold">
                                                     <div className="flex items-center justify-center gap-1.5">
                                                         <span className={
                                                             player.rank === 1 ? "text-amber-400" :
@@ -314,8 +331,7 @@ export default function RatingPage() {
                                                             {player.rank}
                                                         </span>
 
-                                                        {/* ДИНАМИКА МЕСТ */}
-                                                        <span className="text-[10px] font-mono min-w-[20px]">
+                                                        <span className="text-[10px] font-mono min-w-[16px] text-center">
                                                             {player.change > 0 && (
                                                                 <span className="text-emerald-400 font-bold">▲{player.change}</span>
                                                             )}
@@ -328,29 +344,29 @@ export default function RatingPage() {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="py-3.5">
-                                                    <div className="flex items-center justify-start pl-4 gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-xs font-semibold text-slate-300 flex-shrink-0">
+                                                <td className="py-3">
+                                                    <div className="flex items-center justify-center gap-2.5">
+                                                        <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-xs font-semibold text-slate-300 flex-shrink-0">
                                                             {player.name[0]}
                                                         </div>
-                                                        <span className="font-semibold text-slate-200 group-hover:text-sky-400 transition-colors">
+                                                        <span className="font-semibold text-slate-200 group-hover:text-sky-400 transition-colors truncate">
                                                             {player.name}
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="py-3.5 text-center font-bold text-slate-100">{player.score}</td>
+                                                <td className="py-3 text-center font-bold text-slate-100">{player.score}</td>
 
                                                 {/* Блок доп баллов */}
-                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs w-1/3">{player.extraSum}</td>
-                                                <td className="py-3.5 text-center text-rose-400 font-mono text-xs font-semibold w-1/3">{player.penalty}</td>
-                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs w-1/3">{player.extraAdd}</td>
+                                                <td className="py-3 text-center text-slate-300 font-mono text-xs">{player.extraSum}</td>
+                                                <td className="py-3 text-center text-rose-400 font-mono text-xs font-semibold">{player.penalty}</td>
+                                                <td className="py-3 text-center text-slate-300 font-mono text-xs">{player.extraAdd}</td>
 
-                                                <td className="py-3.5 text-center text-slate-400 font-mono text-xs">{player.ci}</td>
-                                                <td className="py-3.5 text-center text-emerald-400 font-semibold">{player.win}</td>
-                                                <td className="py-3.5 text-center text-slate-300 text-xs">{player.don}</td>
-                                                <td className="py-3.5 text-center text-slate-300 text-xs">{player.sheriff}</td>
-                                                <td className="py-3.5 text-center text-slate-300 text-xs">{player.kill}</td>
-                                                <td className="py-3.5 text-center font-bold text-slate-200 pr-4">{player.games}</td>
+                                                <td className="py-3 text-center text-slate-400 font-mono text-xs">{player.ci}</td>
+                                                <td className="py-3 text-center text-emerald-400 font-semibold">{player.win}</td>
+                                                <td className="py-3 text-center text-slate-300 text-xs">{player.don}</td>
+                                                <td className="py-3 text-center text-slate-300 text-xs">{player.sheriff}</td>
+                                                <td className="py-3 text-center text-slate-300 text-xs">{player.kill}</td>
+                                                <td className="py-3 text-center font-bold text-slate-200">{player.games}</td>
                                             </tr>
                                         </React.Fragment>
                                     );
