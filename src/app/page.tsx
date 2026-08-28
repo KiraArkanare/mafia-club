@@ -16,7 +16,7 @@ function UserIcon() {
 /* Крупная 3D Изометрическая графика на фоне */
 function IsometricBackgroundTable() {
     return (
-        <div className="absolute top-1/2 -right-32 -translate-y-1/2 w-[950px] h-[950px] pointer-events-none opacity-60 mix-blend-screen transition-transform duration-700 ease-out group-hover:scale-105">
+        <div className="absolute top-12 -right-20 w-[900px] h-[900px] pointer-events-none opacity-60 mix-blend-screen transition-transform duration-700 ease-out group-hover:scale-105 z-0">
             {/* Неоновый градиент на фоне */}
             <div
                 className="absolute inset-0 rounded-full blur-3xl opacity-40"
@@ -25,11 +25,11 @@ function IsometricBackgroundTable() {
                 }}
             />
 
-            {/* 3D Наклон и разворот стола на ~25 градусов */}
+            {/* 3D Наклон и разворот стола по твоим оси с эскиза */}
             <div
                 className="w-full h-full flex items-center justify-center"
                 style={{
-                    transform: "perspective(1200px) rotateX(55deg) rotateZ(-25deg)",
+                    transform: "perspective(1200px) rotateX(38deg) rotateZ(35deg)",
                     transformStyle: "preserve-3d"
                 }}
             >
