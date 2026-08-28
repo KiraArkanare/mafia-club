@@ -310,9 +310,10 @@ export default function Home() {
                         <h1
                             className="mb-5"
                             style={{
-                                fontFamily: "'Train One', cursive",
-                                fontSize: "clamp(2.6rem, 5.5vw, 4.4rem)",
-                                lineHeight: 1.15,
+                                fontFamily: "'Rubik Glitch', cursive",
+                                fontSize: "clamp(2.4rem, 5vw, 4.2rem)",
+                                lineHeight: 1.1,
+                                letterSpacing: "0.02em",
                                 color: "#e2e8f0",
                             }}
                         >
