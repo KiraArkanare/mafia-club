@@ -27,7 +27,6 @@ body,
     border-radius: 2px;
 }
 
-/* Эффект свечения для акцентных элементов */
 .glow-effect {
     box-shadow: 0 0 35px rgba(56, 189, 248, 0.15), 0 0 15px rgba(52, 211, 153, 0.1);
 }
