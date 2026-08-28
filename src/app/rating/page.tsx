@@ -175,7 +175,7 @@ export default function RatingPage() {
                             onChange={(e) => setSeries(e.target.value)}
                             className="appearance-none bg-transparent pr-7 text-sky-400 font-bold text-sm cursor-pointer outline-none"
                         >
-                            <option value="Серии / Общий" className="bg-[#0b131e] text-slate-200">Серии / Общий рейтинг</option>
+                            <option value="Общий" className="bg-[#0b131e] text-slate-200">Общий рейтинг</option>
                             <option value="Серия A" className="bg-[#0b131e] text-slate-200">Серия A</option>
                             <option value="Серия B" className="bg-[#0b131e] text-slate-200">Серия B</option>
                         </select>
