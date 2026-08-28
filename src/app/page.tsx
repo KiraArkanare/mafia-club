@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 
 function UserIcon() {
@@ -12,211 +13,138 @@ function UserIcon() {
     );
 }
 
-/* Фирменная графика — интерактивный "стол" мафии */
+/* Интерактивный неоновый стол с подсветкой при наведении */
 function MafiaTableGraphic() {
+    const [hoveredRole, setHoveredRole] = useState<string | null>(null);
+
+    const roles = [
+        { title: "Дон", color: "#e05a5a", tag: "Мафия" },
+        { title: "Шериф", color: "#38bdf8", tag: "Город" },
+        { title: "Мафия", color: "#e05a5a", tag: "Мафия" },
+        { title: "Мирный", color: "#34d399", tag: "Город" },
+    ];
+
     return (
-        <svg
-            viewBox="0 0 420 420"
-            fill="none"
-            className="w-full h-full"
-            style={{ maxWidth: 420, maxHeight: 420 }}
-        >
-            <defs>
-                <radialGradient id="tableGlow" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#1a6b8a" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#0e8c6a" stopOpacity="0" />
-                </radialGradient>
-                <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.18" />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity="0" />
-                </radialGradient>
-                <linearGradient id="cardGrad1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#1a3a5a" />
-                    <stop offset="100%" stopColor="#0e2535" />
+        <div className="relative w-full max-w-[440px] aspect-square flex items-center justify-center group">
+            {/* Фоновый неоновый градиент, связывающий графику с заголовком */}
+            <div
+                className="absolute inset-0 rounded-full opacity-30 blur-3xl transition-all duration-700 group-hover:opacity-50"
+                style={{
+                    background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.2) 50%, transparent 70%)"
+                }}
+            />
+
+            {/* Основная SVG графика */}
+            <svg viewBox="0 0 420 420" fill="none" className="w-full h-full relative z-10">
+                <defs>
+                    <filter id="glow-strong">
+                        <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+                        <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                {/* Внешние сияющие орбиты */}
+                <circle cx="210" cy="210" r="190" stroke="#1e3a4a" strokeWidth="1" strokeDasharray="6 8" className="animate-[spin_60s_linear_infinite] origin-center opacity-40" />
+                <circle cx="210" cy="210" r="160" stroke="url(#cyanGrad)" strokeWidth="1.5" opacity="0.3" />
+
+                <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#38bdf8" />
+                    <stop offset="100%" stopColor="#34d399" />
                 </linearGradient>
-                <linearGradient id="cardGrad2" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#1a4a3a" />
-                    <stop offset="100%" stopColor="#0e2520" />
-                </linearGradient>
-                <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="4" stdDeviation="8" floodColor="#000" floodOpacity="0.5" />
-                </filter>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-                    <feMerge><feMergeNode in="coloredBlur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-            </defs>
 
-            <circle cx="210" cy="210" r="200" fill="url(#tableGlow)" />
-            <circle cx="210" cy="210" r="170" stroke="#1e3a4a" strokeWidth="1" strokeDasharray="4 6" opacity="0.5" />
-            <circle cx="210" cy="210" r="140" stroke="#1e3a4a" strokeWidth="1" opacity="0.3" />
-            <circle cx="210" cy="210" r="70" fill="url(#centerGlow)" />
+                {/* Игровой стол */}
+                <circle cx="210" cy="210" r="125" fill="#0b131e" stroke="#1e2d3d" strokeWidth="2" />
+                <circle cx="210" cy="210" r="115" stroke="#162535" strokeWidth="1" strokeDasharray="3 3" />
 
-            <circle cx="210" cy="210" r="38" stroke="#38bdf8" strokeWidth="1" opacity="0.3" />
-            <circle cx="210" cy="210" r="26" fill="#0d1e2e" stroke="#1a5a7a" strokeWidth="1.5" />
-            <text x="210" y="216" textAnchor="middle" fontSize="18" fill="#38bdf8" opacity="0.8" fontFamily="sans-serif" fontWeight="800">М</text>
+                {/* Центральный чип / Клубный логотип */}
+                <circle cx="210" cy="210" r="45" fill="#070d14" stroke="url(#cyanGrad)" strokeWidth="2" filter="url(#glow-strong)" />
+                <text x="210" y="217" textAnchor="middle" fontSize="22" fill="#fff" fontFamily="var(--font-display)" fontWeight="900">
+                    КМ
+                </text>
 
-            {/* Слоты игроков 1..10 вокруг стола */}
-            {Array.from({ length: 10 }).map((_, i) => {
-                const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
-                const r = 155;
-                const cx = 210 + Math.cos(angle) * r;
-                const cy = 210 + Math.sin(angle) * r;
-                const isMafia = [0, 3, 7].includes(i);
-                const isSheriff = i === 5;
-                const color = isMafia ? "#e05a5a" : isSheriff ? "#38bdf8" : "#4a8a7a";
-                return (
-                    <g key={i} filter="url(#softShadow)">
-                        <circle cx={cx} cy={cy} r="13" fill="#0f1e2e" stroke={color} strokeWidth="1.5" opacity="0.9" />
-                        <circle cx={cx} cy={cy} r="4" fill={color} opacity="0.7" filter="url(#glow)" />
-                    </g>
-                );
-            })}
+                {/* 10 Слотов игроков вокруг стола с реакцией на hover */}
+                {Array.from({ length: 10 }).map((_, i) => {
+                    const angle = (i / 10) * Math.PI * 2 - Math.PI / 2;
+                    const r = 125;
+                    const cx = 210 + Math.cos(angle) * r;
+                    const cy = 210 + Math.sin(angle) * r;
+                    const isMafia = [0, 3, 7].includes(i);
+                    const isSheriff = i === 5;
+                    const roleName = isSheriff ? "Шериф" : isMafia ? "Мафия" : "Мирный";
+                    const color = isMafia ? "#f43f5e" : isSheriff ? "#38bdf8" : "#34d399";
 
-            {[
-                { rotate: -18, x: 185, y: 195, grad: "url(#cardGrad1)" },
-                { rotate: 0, x: 200, y: 190, grad: "url(#cardGrad2)" },
-                { rotate: 18, x: 215, y: 195, grad: "url(#cardGrad1)" },
-            ].map((c, i) => (
-                <g key={i} transform={`rotate(${c.rotate}, 210, 210)`} filter="url(#softShadow)">
-                    <rect x={c.x} y={c.y} width="26" height="38" rx="4" fill={c.grad} stroke="#2a5a6a" strokeWidth="1" opacity="0.85" />
-                    <rect x={c.x + 3} y={c.y + 3} width="20" height="32" rx="2" stroke="#38bdf8" strokeWidth="0.5" opacity="0.2" />
-                </g>
-            ))}
+                    return (
+                        <g
+                            key={i}
+                            className="cursor-pointer transition-all duration-300 hover:scale-125 origin-center"
+                            onMouseEnter={() => setHoveredRole(roleName)}
+                            onMouseLeave={() => setHoveredRole(null)}
+                        >
+                            {/* Линия связи с центром */}
+                            <line x1="210" y1="210" x2={cx} y2={cy} stroke={color} strokeWidth="1" opacity="0.15" />
 
-            <line x1="210" y1="55" x2="329" y2="305" stroke="#38bdf8" strokeWidth="0.5" strokeDasharray="3 8" opacity="0.12" />
-            <line x1="90" y1="155" x2="330" y2="200" stroke="#34d399" strokeWidth="0.5" strokeDasharray="3 8" opacity="0.1" />
-        </svg>
-    );
+                            {/* Фишка игрока */}
+                            <circle cx={cx} cy={cy} r="16" fill="#0d1722" stroke={color} strokeWidth="2" />
+                            <circle cx={cx} cy={cy} r="6" fill={color} filter="url(#glow-strong)" />
+                            <text x={cx} y={cy + 4} textAnchor="middle" fontSize="10" fill="#fff" fontWeight="800" fontFamily="sans-serif">
+                                {i + 1}
+                            </text>
+                        </g>
+                    );
+                })}
+            </svg>
+
+            {/* Динамическая плашка в центре при наведении на место */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-[#0f1923]/90 backdrop-blur-md border border-slate-800 text-xs text-center z-20 pointer-events-none transition-all">
+            {hoveredRole ? (
+                <span>Роль слота: <strong className="text-sky-400">{hoveredRole}</strong></span>
+            ) : (
+                <span className="text-slate-400">Наведи на слот игрока</span>
+            )}
+        </div>
+    </div >
+  );
 }
 
 function Logo() {
     return (
-        <div className="flex items-center gap-2.5">
-            <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "linear-gradient(135deg, #1a4a6b 0%, #0e6655 100%)" }}
-            >
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
-                    <circle cx="12" cy="10" r="3" fill="white" opacity="0.9" />
-                    <path d="M6 20c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.6" />
-                </svg>
+        <div className="flex items-center gap-3">
+            {/* Теперь используем Next.js Image без предупреждений! */}
+            <div className="relative w-8 h-8 flex-shrink-0">
+                <Image
+                    src="/logo.png"
+                    alt="Каменск Мафия"
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                    priority
+                />
             </div>
             <div style={{ fontFamily: "var(--font-display)", lineHeight: 1 }}>
-                <span className="font-bold tracking-wide text-base" style={{ color: "#e2e8f0" }}>Каменск</span>
+                <span className="font-extrabold tracking-tight text-sm text-slate-100">КАМЕНСК</span>
                 <span
-                    className="font-extrabold tracking-wide text-base"
+                    className="font-black tracking-tight text-sm ml-1"
                     style={{
                         background: "linear-gradient(90deg, #38bdf8, #34d399)",
                         WebkitBackgroundClip: "text",
                         WebkitTextFillColor: "transparent",
                     }}
                 >
-                    Мафия
+                    МАФИЯ
                 </span>
             </div>
         </div>
     );
 }
 
-function AuthModal({ onClose }: { onClose: () => void }) {
-    const [tab, setTab] = useState<"login" | "register">("login");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [errorMsg, setErrorMsg] = useState("");
-
-    const handleAuth = async () => {
-        setErrorMsg("");
-        if (tab === "login") {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) setErrorMsg(error.message);
-            else onClose();
-        } else {
-            const { error } = await supabase.auth.signUp({ email, password });
-            if (error) setErrorMsg(error.message);
-            else onClose();
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-            <div className="absolute inset-0" style={{ background: "rgba(6,10,18,0.8)", backdropFilter: "blur(12px)" }} />
-            <div
-                className="relative w-full max-w-sm mx-4 rounded-2xl overflow-hidden"
-                style={{ background: "#0f1923", border: "1px solid #1e3a4a" }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="h-1" style={{ background: "linear-gradient(90deg, #1a6b8a, #0e8c6a)" }} />
-                <div className="p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <span style={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", fontWeight: 700, color: "#e2e8f0" }}>
-                            {tab === "login" ? "Вход для ведущего" : "Регистрация"}
-                        </span>
-                        <button
-                            onClick={onClose}
-                            className="w-7 h-7 rounded-lg flex items-center justify-center text-sm transition-colors text-slate-400 bg-slate-800 hover:text-white"
-                        >✕</button>
-                    </div>
-
-                    <div className="flex mb-6 gap-1 p-1 rounded-xl" style={{ background: "#0a1520" }}>
-                        {(["login", "register"] as const).map((t) => (
-                            <button
-                                key={t}
-                                onClick={() => setTab(t)}
-                                className="flex-1 py-2 rounded-lg text-sm transition-all"
-                                style={{
-                                    fontFamily: "var(--font-display)",
-                                    fontWeight: 600,
-                                    fontSize: "0.85rem",
-                                    color: tab === t ? "#e2e8f0" : "#4a6a7a",
-                                    background: tab === t ? "linear-gradient(135deg, #1a4a6b, #0e6655)" : "transparent",
-                                }}
-                            >
-                                {t === "login" ? "Войти" : "Создать"}
-                            </button>
-                        ))}
-                    </div>
-
-                    {errorMsg && <div className="text-red-400 text-xs mb-3 text-center">{errorMsg}</div>}
-
-                    <div className="flex flex-col gap-3">
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-4 py-3 text-sm rounded-xl outline-none transition-all"
-                            style={{ background: "#0a1520", border: "1px solid #1e3a4a", color: "#e2e8f0" }}
-                        />
-                        <input
-                            type="password"
-                            placeholder="Пароль"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full px-4 py-3 text-sm rounded-xl outline-none transition-all"
-                            style={{ background: "#0a1520", border: "1px solid #1e3a4a", color: "#e2e8f0" }}
-                        />
-                        <button
-                            onClick={handleAuth}
-                            className="w-full py-3 mt-1 text-sm rounded-xl transition-opacity hover:opacity-90 font-bold"
-                            style={{ background: "linear-gradient(135deg, #1a6b8a, #0e8c6a)", color: "#fff" }}
-                        >
-                            {tab === "login" ? "Войти" : "Зарегистрироваться"}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
 export default function Home() {
-    const [authOpen, setAuthOpen] = useState(false);
     const [playerCount, setPlayerCount] = useState<number>(0);
 
     useEffect(() => {
         async function loadStats() {
-            // Загружаем реальное количество игроков из базы Supabase
             const { count } = await supabase.from('players').select('*', { count: 'exact', head: true });
             if (count !== null) setPlayerCount(count);
         }
@@ -230,105 +158,81 @@ export default function Home() {
     ];
 
     return (
-        <div className="min-h-full" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
+        <div className="min-h-full overflow-x-hidden" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
 
             {/* HEADER */}
             <header
                 className="fixed top-0 left-0 right-0 z-40"
                 style={{
-                    height: "60px",
-                    background: "rgba(7,13,20,0.92)",
+                    height: "64px",
+                    background: "rgba(7,13,20,0.85)",
                     borderBottom: "1px solid #142030",
                     backdropFilter: "blur(16px)",
                 }}
             >
-                <div
-                    className="h-full px-6 md:px-10"
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr auto 1fr",
-                        alignItems: "center",
-                    }}
-                >
+                <div className="h-full px-6 md:px-10 flex items-center justify-between max-w-7xl mx-auto">
                     <Logo />
 
-                    <nav className="hidden md:flex items-center gap-1">
+                    <nav className="hidden md:flex items-center gap-2">
                         {["Игроки", "Рейтинг", "Игры"].map((link) => (
                             <a
                                 key={link}
                                 href="#"
-                                className="px-4 py-2 text-sm rounded-xl transition-all"
-                                style={{ fontFamily: "var(--font-display)", fontWeight: 600, color: "#6a8a9a" }}
+                                className="px-4 py-2 text-xs rounded-xl transition-all hover:text-sky-400"
+                                style={{ fontFamily: "var(--font-display)", fontWeight: 700, color: "#6a8a9a" }}
                             >
                                 {link}
                             </a>
                         ))}
                     </nav>
 
-                    <div className="flex justify-end">
-                        <button
-                            onClick={() => setAuthOpen(true)}
-                            className="w-9 h-9 rounded-xl flex items-center justify-center transition-all"
-                            style={{ color: "#6a8a9a", background: "#0f1e2e", border: "1px solid #1e3a4a" }}
-                            title="Войти в систему"
-                        >
-                            <UserIcon />
-                        </button>
-                    </div>
+                    <button
+                        className="w-9 h-9 rounded-xl flex items-center justify-center transition-all text-slate-400 hover:text-white"
+                        style={{ background: "#0f1e2e", border: "1px solid #1e3a4a" }}
+                        title="Войти в систему"
+                    >
+                        <UserIcon />
+                    </button>
                 </div>
             </header>
 
             {/* MAIN */}
-            <main className="pt-20 min-h-screen flex items-center justify-center px-6 pb-12">
-                <div
-                    className="relative w-full max-w-5xl mx-auto"
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "48px",
-                        alignItems: "center",
-                    }}
-                >
-                    {/* LEFT */}
-                    <div>
+            <main className="pt-24 min-h-screen flex items-center justify-center px-6 pb-12">
+                <div className="relative w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+
+                    {/* LEFT CONTENT (7 колонок) */}
+                    <div className="lg:col-span-7 z-10">
                         <div
-                            className="inline-flex items-center gap-3 px-4 py-3 rounded-2xl mb-8"
+                            className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl mb-6"
                             style={{
                                 background: "linear-gradient(135deg, rgba(14,140,106,0.15) 0%, rgba(26,107,138,0.15) 100%)",
                                 border: "1px solid rgba(52,211,153,0.25)",
                             }}
                         >
-                            <div className="flex items-center gap-2">
-                                <span
-                                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                                    style={{ background: "#34d399", boxShadow: "0 0 8px #34d399, 0 0 20px rgba(52,211,153,0.4)" }}
-                                />
-                                <span style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", fontWeight: 700, color: "#34d399" }}>
-                                    Сезон 1 активен
-                                </span>
-                            </div>
-                            <div style={{ width: "1px", height: "16px", background: "rgba(52,211,153,0.3)" }} />
-                            <span style={{ fontFamily: "var(--font-body)", fontSize: "0.75rem", color: "#4a8a7a" }}>
-                                Идёт набор
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", fontWeight: 800 }} className="text-emerald-400 uppercase tracking-wider">
+                                Сезон 1 активен
                             </span>
                         </div>
 
+                        {/* Дерзкий главный заголовок новым шрифтом Unbounded */}
                         <h1
-                            className="mb-5"
+                            className="mb-6 uppercase"
                             style={{
                                 fontFamily: "var(--font-display)",
-                                fontSize: "clamp(2.6rem, 5.5vw, 4.4rem)",
+                                fontSize: "clamp(2.2rem, 4.5vw, 3.8rem)",
                                 fontWeight: 900,
-                                lineHeight: 1.05,
-                                letterSpacing: "-0.02em",
-                                color: "#e2e8f0",
+                                lineHeight: 1.1,
+                                letterSpacing: "-0.03em",
+                                color: "#f1f5f9",
                             }}
                         >
                             Спортивная
                             <br />
                             <span
+                                className="relative"
                                 style={{
-                                    background: "linear-gradient(95deg, #38bdf8 0%, #34d399 60%, #6ee7b7 100%)",
+                                    background: "linear-gradient(95deg, #38bdf8 0%, #34d399 100%)",
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent",
                                 }}
@@ -337,93 +241,67 @@ export default function Home() {
                             </span>
                         </h1>
 
-                        <p
-                            className="mb-10"
-                            style={{
-                                color: "#4a6a7a",
-                                fontSize: "0.95rem",
-                                lineHeight: 1.75,
-                                maxWidth: "420px",
-                            }}
-                        >
-                            Статистика, рейтинги и архив партий городского клуба Каменск-Шахтинский
+                        <p className="mb-8 text-slate-400 text-sm md:text-base max-w-lg leading-relaxed">
+                            Интеллектуальный клуб Каменска-Шахтинского. Полная статистика партий, рейтинги игроков и аналитика турниров.
                         </p>
 
-                        {/* Карточки метрик */}
-                        <div className="flex flex-col gap-3">
+                        {/* Статистика */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
                             {STATS.map((s, i) => (
                                 <div
                                     key={s.label}
-                                    className="flex items-center gap-4 px-5 py-4 rounded-2xl transition-transform hover:-translate-y-0.5"
+                                    className="p-4 rounded-2xl transition-all"
                                     style={{
-                                        background: i === 0 ? "linear-gradient(135deg, rgba(26,107,138,0.18) 0%, rgba(14,140,106,0.12) 100%)" : "#0f1923",
-                                        border: i === 0 ? "1px solid rgba(56,189,248,0.2)" : "1px solid #162535",
+                                        background: i === 0 ? "linear-gradient(135deg, rgba(26,107,138,0.2) 0%, rgba(14,140,106,0.15) 100%)" : "#0d1520",
+                                        border: i === 0 ? "1px solid rgba(56,189,248,0.3)" : "1px solid #162332",
                                     }}
                                 >
                                     <div
-                                        className="flex-shrink-0"
                                         style={{
                                             fontFamily: "var(--font-display)",
-                                            fontSize: "1.65rem",
+                                            fontSize: "1.5rem",
                                             fontWeight: 800,
-                                            background: i === 0
-                                                ? "linear-gradient(90deg, #38bdf8, #34d399)"
-                                                : "linear-gradient(90deg, #d0e8f0, #8ab8c8)",
-                                            WebkitBackgroundClip: "text",
-                                            WebkitTextFillColor: "transparent",
-                                            minWidth: "90px",
                                         }}
+                                        className="text-sky-400 mb-1"
                                     >
                                         {s.value}
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: "0.85rem", fontWeight: 500, color: "#c0d8e4" }}>{s.label}</div>
-                                        <div style={{ fontSize: "0.72rem", color: "#3a6a7a", marginTop: "2px" }}>{s.sub}</div>
-                                    </div>
+                                    <div className="text-xs font-semibold text-slate-200">{s.label}</div>
+                                    <div className="text-[10px] text-slate-500">{s.sub}</div>
                                 </div>
                             ))}
                         </div>
 
                         {/* Кнопки */}
-                        <div className="flex gap-3 mt-8">
+                        <div className="flex flex-wrap gap-4">
                             <button
-                                className="px-6 py-2.5 rounded-xl text-sm transition-opacity hover:opacity-90 font-bold"
+                                className="px-7 py-3.5 rounded-xl text-xs transition-transform hover:scale-105 font-extrabold uppercase tracking-wider"
                                 style={{
-                                    background: "linear-gradient(135deg, #1a6b8a, #0e8c6a)",
+                                    fontFamily: "var(--font-display)",
+                                    background: "linear-gradient(135deg, #38bdf8 0%, #0e8c6a 100%)",
                                     color: "#fff",
+                                    boxShadow: "0 4px 20px rgba(56,189,248,0.25)"
                                 }}
                             >
                                 Рейтинг игроков
                             </button>
                             <button
-                                className="px-6 py-2.5 rounded-xl text-sm transition-colors border border-slate-700 text-slate-400 hover:text-white"
+                                className="px-7 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors border border-slate-700 text-slate-300 hover:bg-slate-800"
+                                style={{ fontFamily: "var(--font-display)" }}
                             >
-                                Все партии
+                                Архив партий
                             </button>
                         </div>
                     </div>
 
-                    {/* RIGHT — Графика стола */}
-                    <div className="hidden md:flex items-center justify-center">
-                        <div className="relative" style={{ width: "360px", height: "360px" }}>
-                            <MafiaTableGraphic />
-                        </div>
+                    {/* RIGHT GRAPHIC (5 колонок) — теперь с мягким свечением и интерактивом */}
+                    <div className="lg:col-span-5 flex justify-center items-center relative">
+                        <MafiaTableGraphic />
                     </div>
+
                 </div>
             </main>
 
-            {/* FOOTER */}
-            <footer
-                className="px-6 md:px-10 py-5 flex flex-col md:flex-row items-center justify-between gap-3"
-                style={{ borderTop: "1px solid #142030" }}
-            >
-                <Logo />
-                <span style={{ fontSize: "0.72rem", color: "#1e3a4a" }}>
-                    © 2026 КаменскМафия · Сезон 1
-                </span>
-            </footer>
-
-            {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
         </div>
     );
 }
