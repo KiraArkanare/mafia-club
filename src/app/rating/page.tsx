@@ -3,9 +3,19 @@
 import React, { useState } from "react";
 import Image from "next/image";
 
-function ChevronDownIcon() {
+function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
     return (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        >
             <polyline points="6 9 12 15 18 9" />
         </svg>
     );
@@ -41,18 +51,18 @@ function Logo() {
     );
 }
 
-// Тестовые данные с запасом для проверки скролла
+// Тестовые данные с динамикой мест (change: >0 - подъем, <0 - спад, 0 - без изменений)
 const MOCK_PLAYERS = [
-    { rank: 1, name: "Mr. White", avatar: "", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 18 },
-    { rank: 2, name: "Sherlock", avatar: "", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 17 },
-    { rank: 3, name: "Vega", avatar: "", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 16 },
-    { rank: 4, name: "Joker", avatar: "", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 12 },
-    { rank: 5, name: "Neo", avatar: "", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 10 },
-    { rank: 6, name: "Trinity", avatar: "", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 8 },
-    { rank: 7, name: "Morpheus", avatar: "", score: "4.8", extraSum: "1.5", extraAdd: "1.5", penalty: "0", ci: "0", win: "2", don: "0", sheriff: "1", kill: "0", games: 6 },
-    { rank: 8, name: "Agent Smith", avatar: "", score: "4.1", extraSum: "1.0", extraAdd: "1.0", penalty: "0.5", ci: "0", win: "1", don: "1", sheriff: "0", kill: "0", games: 5 },
-    { rank: 9, name: "Cypher", avatar: "", score: "3.5", extraSum: "0.5", extraAdd: "0.5", penalty: "1.0", ci: "0", win: "1", don: "0", sheriff: "0", kill: "0", games: 3 },
-    { rank: 10, name: "Oracle", avatar: "", score: "2.0", extraSum: "0.0", extraAdd: "0.0", penalty: "0", ci: "0", win: "0", don: "0", sheriff: "0", kill: "0", games: 2 },
+    { rank: 1, change: 1, name: "Mr. White", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 18 },
+    { rank: 2, change: -1, name: "Sherlock", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 17 },
+    { rank: 3, change: 2, name: "Vega", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 16 },
+    { rank: 4, change: 0, name: "Joker", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 12 },
+    { rank: 5, change: -2, name: "Neo", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 10 },
+    { rank: 6, change: 0, name: "Trinity", score: "5.2", extraSum: "2.5", extraAdd: "2.5", penalty: "0", ci: "0", win: "2", don: "1", sheriff: "0", kill: "1", games: 8 },
+    { rank: 7, change: 3, name: "Morpheus", score: "4.8", extraSum: "1.5", extraAdd: "1.5", penalty: "0", ci: "0", win: "2", don: "0", sheriff: "1", kill: "0", games: 6 },
+    { rank: 8, change: -1, name: "Agent Smith", score: "4.1", extraSum: "1.0", extraAdd: "1.0", penalty: "0.5", ci: "0", win: "1", don: "1", sheriff: "0", kill: "0", games: 5 },
+    { rank: 9, change: 0, name: "Cypher", score: "3.5", extraSum: "0.5", extraAdd: "0.5", penalty: "1.0", ci: "0", win: "1", don: "0", sheriff: "0", kill: "0", games: 3 },
+    { rank: 10, change: 0, name: "Oracle", score: "2.0", extraSum: "0.0", extraAdd: "0.0", penalty: "0", ci: "0", win: "0", don: "0", sheriff: "0", kill: "0", games: 2 },
 ];
 
 const LEGEND_ITEMS = [
@@ -60,23 +70,29 @@ const LEGEND_ITEMS = [
     { code: "Σ (+/-)", desc: "Сумма доп. баллов" },
     { code: "!", desc: "Дисциплинарные штрафы" },
     { code: "Лх", desc: "Баллы за лучший ход" },
-    { code: "Ci", desc: "Коэффициент ценности" },
+    { code: "Ci", desc: "Компенсационные баллы" },
     { code: "П", desc: "Победы" },
     { code: "Д", desc: "Победы на Доне" },
     { code: "Ш", desc: "Победы на Шерифе" },
-    { code: "У", desc: "Угаданные тройки мафии" },
+    { code: "У", desc: "Убийств в первую ночь" },
 ];
 
 export default function RatingPage() {
-    const [season, setSeason] = useState("Сезон 1");
-    const [series, setSeries] = useState("Общий");
+    const [season, setSeason] = useState("Сезон 1 (Активен)");
+    const [series, setSeries] = useState("Общий рейтинг");
+
+    const [isSeasonOpen, setIsSeasonOpen] = useState(false);
+    const [isSeriesOpen, setIsSeriesOpen] = useState(false);
 
     const QUALIFICATION_LIMIT = 16;
+
+    const seasonOptions = ["Сезон 1 (Активен)", "Сезон 2"];
+    const seriesOptions = ["Общий рейтинг", "Серия 1", "Серия 2"];
 
     return (
         <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
 
-            {/* ФОНОВЫЕ СВЕЧЕНИЯ И СЕТКА */}
+            {/* ФОНОВЫЕ СВЕЧЕНИЯ */}
             <div
                 className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none opacity-20 blur-3xl"
                 style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
@@ -132,60 +148,105 @@ export default function RatingPage() {
             {/* MAIN CONTENT */}
             <main className="pt-24 pb-16 px-4 md:px-8 max-w-6xl mx-auto w-full flex-1 relative z-10">
 
-                {/* ВЕРХНЯЯ ПАНЕЛЬ С КРАСИВЫМИ ПЛАШКАМИ И ФИЛЬТРАМИ */}
+                {/* ВЕРХНЯЯ ПАНЕЛЬ С СТИЛЬНЫМИ ДРОПДАУНАМИ */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-6 px-1">
-                    <div className="flex items-center gap-3">
-                        {/* Плашка Выбора Сезона */}
-                        <div
-                            className="relative flex items-center px-4 py-2 rounded-xl transition-all border"
+
+                    {/* КАСТОМНЫЙ ДРОПДАУН: СЕЗОН */}
+                    <div className="relative">
+                        <button
+                            onClick={() => {
+                                setIsSeasonOpen(!isSeasonOpen);
+                                setIsSeriesOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all cursor-pointer text-emerald-400 font-bold text-sm"
                             style={{
-                                background: "rgba(15,30,46,0.8)",
-                                borderColor: "rgba(52,211,153,0.3)",
+                                background: "rgba(15,30,46,0.85)",
+                                borderColor: isSeasonOpen ? "rgba(52,211,153,0.6)" : "rgba(52,211,153,0.25)",
                                 boxShadow: "0 0 15px rgba(52,211,153,0.08)",
                                 backdropFilter: "blur(8px)"
                             }}
                         >
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-2.5 shadow-[0_0_8px_#34d399]" />
-                            <select
-                                value={season}
-                                onChange={(e) => setSeason(e.target.value)}
-                                className="appearance-none bg-transparent pr-7 text-emerald-400 font-bold text-sm cursor-pointer outline-none"
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                            <span>{season}</span>
+                            <ChevronDownIcon isOpen={isSeasonOpen} />
+                        </button>
+
+                        {isSeasonOpen && (
+                            <div
+                                className="absolute left-0 mt-2 w-48 rounded-xl border py-1 z-30 shadow-2xl"
+                                style={{
+                                    background: "#0d1a29",
+                                    borderColor: "rgba(52,211,153,0.3)",
+                                    backdropFilter: "blur(12px)"
+                                }}
                             >
-                                <option value="Сезон 1" className="bg-[#0b131e] text-slate-200">Сезон 1 (Активен)</option>
-                                <option value="Сезон 2" className="bg-[#0b131e] text-slate-200">Сезон 2</option>
-                            </select>
-                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-emerald-400">
-                                <ChevronDownIcon />
-                            </span>
-                        </div>
+                                {seasonOptions.map((opt) => (
+                                    <button
+                                        key={opt}
+                                        onClick={() => {
+                                            setSeason(opt);
+                                            setIsSeasonOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${season === opt ? "text-emerald-400 bg-emerald-950/30" : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+                                            }`}
+                                    >
+                                        <span>{opt}</span>
+                                        {season === opt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    {/* Плашка Выбора Серии */}
-                    <div
-                        className="relative flex items-center px-4 py-2 rounded-xl border transition-all"
-                        style={{
-                            background: "rgba(15,30,46,0.8)",
-                            borderColor: "rgba(56,189,248,0.3)",
-                            boxShadow: "0 0 15px rgba(56,189,248,0.08)",
-                            backdropFilter: "blur(8px)"
-                        }}
-                    >
-                        <select
-                            value={series}
-                            onChange={(e) => setSeries(e.target.value)}
-                            className="appearance-none bg-transparent pr-7 text-sky-400 font-bold text-sm cursor-pointer outline-none"
+                    {/* КАСТОМНЫЙ ДРОПДАУН: СЕРИЯ */}
+                    <div className="relative">
+                        <button
+                            onClick={() => {
+                                setIsSeriesOpen(!isSeriesOpen);
+                                setIsSeasonOpen(false);
+                            }}
+                            className="flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all cursor-pointer text-sky-400 font-bold text-sm"
+                            style={{
+                                background: "rgba(15,30,46,0.85)",
+                                borderColor: isSeriesOpen ? "rgba(56,189,248,0.6)" : "rgba(56,189,248,0.25)",
+                                boxShadow: "0 0 15px rgba(56,189,248,0.08)",
+                                backdropFilter: "blur(8px)"
+                            }}
                         >
-                            <option value="Общий" className="bg-[#0b131e] text-slate-200">Общий рейтинг</option>
-                            <option value="Серия A" className="bg-[#0b131e] text-slate-200">Серия A</option>
-                            <option value="Серия B" className="bg-[#0b131e] text-slate-200">Серия B</option>
-                        </select>
-                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-sky-400">
-                            <ChevronDownIcon />
-                        </span>
+                            <span>{series}</span>
+                            <ChevronDownIcon isOpen={isSeriesOpen} />
+                        </button>
+
+                        {isSeriesOpen && (
+                            <div
+                                className="absolute right-0 mt-2 w-48 rounded-xl border py-1 z-30 shadow-2xl"
+                                style={{
+                                    background: "#0d1a29",
+                                    borderColor: "rgba(56,189,248,0.3)",
+                                    backdropFilter: "blur(12px)"
+                                }}
+                            >
+                                {seriesOptions.map((opt) => (
+                                    <button
+                                        key={opt}
+                                        onClick={() => {
+                                            setSeries(opt);
+                                            setIsSeriesOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${series === opt ? "text-sky-400 bg-sky-950/30" : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+                                            }`}
+                                    >
+                                        <span>{opt}</span>
+                                        {series === opt && <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
+
                 </div>
 
-                {/* ГЛАВНАЯ ТАБЛИЦА С СКРОЛЛОМ */}
+                {/* ГЛАВНАЯ ТАБЛИЦА */}
                 <div
                     className="rounded-2xl border overflow-hidden mb-8"
                     style={{
@@ -199,12 +260,12 @@ export default function RatingPage() {
                             {/* Sticky Заголовок таблицы */}
                             <thead className="sticky top-0 z-20" style={{ background: "#0b1522" }}>
                                 <tr className="text-slate-400 text-xs border-b border-slate-800">
-                                    <th className="py-4 font-bold w-16 text-center text-slate-400">Место</th>
-                                    <th className="py-4 font-bold text-slate-400">Игрок</th>
+                                    <th className="py-4 font-bold w-20 text-center text-slate-400">Место</th>
+                                    <th className="py-4 font-bold text-slate-400 text-center">Игрок</th>
                                     <th className="py-4 font-bold text-center text-slate-200">Баллы</th>
                                     <th className="py-4 font-bold text-center border-x border-slate-800/60 px-2" colSpan={3}>
-                                        <div className="text-slate-300">Допп баллы</div>
-                                        <div className="flex justify-between text-[10px] text-slate-500 pt-1 tracking-normal font-mono">
+                                        <div className="text-slate-300 pb-1">Допп баллы</div>
+                                        <div className="grid grid-cols-3 text-[10px] text-slate-500 font-mono tracking-normal text-center">
                                             <span>Σ (+/-)</span>
                                             <span>!</span>
                                             <span>Лх</span>
@@ -226,13 +287,13 @@ export default function RatingPage() {
 
                                     return (
                                         <React.Fragment key={player.name}>
-                                            {/* Разделитель порога номинаций */}
+                                            {/* Разделитель порога номинаций (смещен влево с нахлестом) */}
                                             {showDivider && (
-                                                <tr key="divider-row" className="bg-[#08111a]">
-                                                    <td colSpan={12} className="py-2.5 px-4">
-                                                        <div className="relative flex items-center justify-center">
+                                                <tr key="divider-row" className="bg-[#08111a] relative z-10">
+                                                    <td colSpan={12} className="py-0 px-4">
+                                                        <div className="relative flex items-center justify-start py-2 -my-2">
                                                             <div className="w-full border-t border-emerald-500/40" />
-                                                            <div className="absolute px-3 py-0.5 rounded-full text-[10px] font-bold text-emerald-300 bg-[#07131e] border border-emerald-500/50 shadow-[0_0_10px_rgba(52,211,153,0.15)]">
+                                                            <div className="absolute left-6 px-3 py-0.5 rounded-full text-[10px] font-bold text-emerald-300 bg-[#07131e] border border-emerald-500/50 shadow-[0_0_12px_rgba(52,211,153,0.25)]">
                                                                 Номинация ({QUALIFICATION_LIMIT} игр)
                                                             </div>
                                                         </div>
@@ -243,17 +304,32 @@ export default function RatingPage() {
                                             {/* Строка игрока */}
                                             <tr className="group hover:bg-slate-800/30 transition-colors">
                                                 <td className="py-3.5 text-center font-bold">
-                                                    <span className={
-                                                        player.rank === 1 ? "text-amber-400" :
-                                                            player.rank === 2 ? "text-slate-300" :
-                                                                player.rank === 3 ? "text-amber-600" :
-                                                                    player.rank <= 5 ? "text-emerald-400" : "text-slate-500"
-                                                    }>
-                                                        {player.rank}
-                                                    </span>
+                                                    <div className="flex items-center justify-center gap-1.5">
+                                                        <span className={
+                                                            player.rank === 1 ? "text-amber-400" :
+                                                                player.rank === 2 ? "text-slate-300" :
+                                                                    player.rank === 3 ? "text-amber-600" :
+                                                                        player.rank <= 5 ? "text-emerald-400" : "text-slate-500"
+                                                        }>
+                                                            {player.rank}
+                                                        </span>
+
+                                                        {/* ДИНАМИКА МЕСТ */}
+                                                        <span className="text-[10px] font-mono min-w-[20px]">
+                                                            {player.change > 0 && (
+                                                                <span className="text-emerald-400 font-bold">▲{player.change}</span>
+                                                            )}
+                                                            {player.change < 0 && (
+                                                                <span className="text-rose-400 font-bold">▼{Math.abs(player.change)}</span>
+                                                            )}
+                                                            {player.change === 0 && (
+                                                                <span className="text-slate-600">—</span>
+                                                            )}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                                 <td className="py-3.5">
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex items-center justify-start pl-4 gap-3">
                                                         <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-xs font-semibold text-slate-300 flex-shrink-0">
                                                             {player.name[0]}
                                                         </div>
@@ -265,9 +341,9 @@ export default function RatingPage() {
                                                 <td className="py-3.5 text-center font-bold text-slate-100">{player.score}</td>
 
                                                 {/* Блок доп баллов */}
-                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs">{player.extraSum}</td>
-                                                <td className="py-3.5 text-center text-rose-400 font-mono text-xs font-semibold">{player.penalty}</td>
-                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs">{player.extraAdd}</td>
+                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs w-1/3">{player.extraSum}</td>
+                                                <td className="py-3.5 text-center text-rose-400 font-mono text-xs font-semibold w-1/3">{player.penalty}</td>
+                                                <td className="py-3.5 text-center text-slate-300 font-mono text-xs w-1/3">{player.extraAdd}</td>
 
                                                 <td className="py-3.5 text-center text-slate-400 font-mono text-xs">{player.ci}</td>
                                                 <td className="py-3.5 text-center text-emerald-400 font-semibold">{player.win}</td>
