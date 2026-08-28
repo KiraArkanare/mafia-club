@@ -25,11 +25,11 @@ function IsometricBackgroundTable() {
                 }}
             />
 
-            {/* 3D Наклон и разворот стола на ~25 градусов */}
+            {/* 3D Наклон и разворот стола на ~45 градусов */}
             <div
                 className="w-full h-full flex items-center justify-center"
                 style={{
-                    transform: "perspective(1200px) rotateX(55deg) rotateZ(-25deg)",
+                    transform: "perspective(1200px) rotateX(65deg) rotateZ(-45deg)",
                     transformStyle: "preserve-3d"
                 }}
             >
@@ -251,8 +251,8 @@ export default function Home() {
                             <a
                                 key={link}
                                 href="#"
-                                className="px-4 py-2 text-sm rounded-xl transition-all"
-                                style={{ fontFamily: "var(--font-display)", fontWeight: 600, color: "#6a8a9a" }}
+                                className="px-4 py-2 text-base font-bold transition-all hover:text-sky-400"
+                                style={{ fontFamily: "'Nunito', sans-serif", color: "#94a3b8" }}
                             >
                                 {link}
                             </a>
