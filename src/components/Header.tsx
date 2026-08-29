@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link"; // <-- Используем Link из Next.js
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AuthModal from "@/components/AuthModal";
+import logoImg from "@/public/logo.png"; // <-- Прямой импорт картинки гарантирует правильный путь
 
 function UserIcon() {
     return (
@@ -17,10 +19,10 @@ function UserIcon() {
 
 function Logo() {
     return (
-        <a href="/" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
             <div className="relative w-8 h-8 flex-shrink-0">
                 <Image
-                    src="/logo.png"
+                    src={logoImg}
                     alt="Каменск Мафия"
                     width={32}
                     height={32}
@@ -41,7 +43,7 @@ function Logo() {
                     Mafia
                 </span>
             </div>
-        </a>
+        </Link>
     );
 }
 
@@ -82,7 +84,7 @@ export default function Header() {
                         {navLinks.map((link) => {
                             const isActive = pathname === link.href;
                             return (
-                                <a
+                                <Link
                                     key={link.name}
                                     href={link.href}
                                     className={`px-4 py-2 text-base font-bold transition-all ${isActive ? "text-emerald-400" : "hover:text-sky-400 text-slate-400"
@@ -90,7 +92,7 @@ export default function Header() {
                                     style={{ fontFamily: "'Nunito', sans-serif" }}
                                 >
                                     {link.name}
-                                </a>
+                                </Link>
                             );
                         })}
                     </nav>
