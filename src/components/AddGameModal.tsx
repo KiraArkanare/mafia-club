@@ -190,7 +190,7 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
                     game_id: gameData.id,
                     player_id: playerInDb.id,
                     slot_number: p.slot,
-                    role: p.role,
+                    role: p.role.toUpperCase(),
                     win_points: winPts,
                     extra_points: extraPts,
                     penalty_points: penaltyPts,
