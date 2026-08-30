@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import AddGameModal from "@/components/AddGameModal";
 import { supabase } from "@/lib/supabase";
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+const basePath = process.env.NODE_ENV === 'production' ? '/mafia-club' : '';
 
 function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
     return (
@@ -48,6 +48,7 @@ function RoleIcon({ role }: { role: string }) {
                 width={20}
                 height={20}
                 className="object-contain"
+                unoptimized
             />
         </div>
     );
