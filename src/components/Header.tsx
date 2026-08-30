@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link"; 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AuthModal from "@/components/AuthModal";
@@ -81,7 +81,7 @@ export default function Header() {
                     {/* Центр - Навигация */}
                     <nav className="hidden md:flex items-center gap-1">
                         {navLinks.map((link) => {
-                            const isActive = pathname === link.href;
+                            const isActive = pathname === link.href || pathname === `${link.href}/`;
                             return (
                                 <Link
                                     key={link.name}
