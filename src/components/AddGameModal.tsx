@@ -152,13 +152,18 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
                 if (found) firstKilledPlayerId = found.id;
             }
 
+            // Преобразуем значение из формы ('civilians' / 'red' -> 'RED', 'mafia' / 'black' -> 'BLACK')
+            const formattedWinner = (winner === 'civilians' || winner === 'red' || winner === 'RED')
+                ? 'RED'
+                : 'BLACK';
+
             // 1. Создаем запись в таблице `games`
             const { data: gameData, error: gameError } = await supabase
                 .from('games')
                 .insert([{
                     series_id: selectedSeriesId,
                     game_number: Number(gameNumber),
-                    winner_team: winner,
+                    winner_team: formattedWinner,
                     first_night_killed_id: firstKilledPlayerId,
                     comments: referee ? `Судья: ${referee}. ${comment}` : comment
                 }])
