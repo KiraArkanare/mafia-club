@@ -51,7 +51,10 @@ interface RawResult {
     compensation_points: number;
     total_game_score: number;
     role: string;
-    player: { nickname: string } | null;
+    player: {
+        nickname: string;
+        avatar_url?: string | null; // Укажите имя колонки из вашей БД (например, avatar_url или avatar)
+    } | null;
     game: {
         winner_team: string;
         series_id: string;
@@ -64,6 +67,7 @@ interface FormattedPlayer {
     change: number;
     id: string;
     name: string;
+    avatarUrl?: string | null;
     score: string;
     extraSum: string;
     penalty: string;
@@ -126,7 +130,7 @@ export default function RatingPage() {
                 compensation_points,
                 total_game_score,
                 role,
-                player:players(nickname),
+                player:players(nickname, avatar_url),
                 game:games!inner(
                     winner_team,
                     series_id,
@@ -188,6 +192,7 @@ export default function RatingPage() {
 
         const playerMap: Record<string, {
             name: string;
+            avatarUrl: string | null;
             games: number;
             seriesScores: Record<string, number>;
             allGamesTotalScore: number;
@@ -204,11 +209,13 @@ export default function RatingPage() {
         filteredResults.forEach((r) => {
             const pId = r.player_id;
             const pName = r.player?.nickname || 'Неизвестный';
+            const pAvatar = r.player?.avatar_url || null;
             const seriesId = r.game?.series_id || 'unknown';
 
             if (!playerMap[pId]) {
                 playerMap[pId] = {
                     name: pName,
+                    avatarUrl: pAvatar,
                     games: 0,
                     seriesScores: {},
                     allGamesTotalScore: 0,
@@ -290,6 +297,7 @@ export default function RatingPage() {
                 change: 0,
                 id: pId,
                 name: p.name,
+                avatarUrl: p.avatarUrl,
                 score: formatNumber(finalScore),
                 extraSum: formatNumber(p.extraSum),
                 penalty: formatNumber(p.discPenalties),
@@ -543,8 +551,16 @@ export default function RatingPage() {
                                                     </td>
                                                     <td className="py-2.5 px-3">
                                                         <div className="flex items-center justify-start gap-2.5">
-                                                            <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-[11px] font-semibold text-slate-300 flex-shrink-0">
-                                                                {player.name[0]}
+                                                            <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-700/80 flex items-center justify-center text-[11px] font-semibold text-slate-300 flex-shrink-0 overflow-hidden">
+                                                                {player.avatarUrl ? (
+                                                                    <img
+                                                                        src={player.avatarUrl}
+                                                                        alt={player.name}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    player.name[0]
+                                                                )}
                                                             </div>
                                                             <span className="font-semibold text-slate-200 group-hover:text-sky-400 transition-colors truncate">
                                                                 {player.name}

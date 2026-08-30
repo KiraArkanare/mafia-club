@@ -54,6 +54,12 @@ function RoleIcon({ role }: { role: string }) {
     );
 }
 
+function formatNumber(num: number): string {
+    if (Number.isInteger(num)) return num.toString();
+    const fixed = num.toFixed(2);
+    return fixed.endsWith('0') ? num.toFixed(1) : fixed;
+}
+
 interface PlayerSlot {
     slot: number;
     name: string;
@@ -174,13 +180,16 @@ export default function GamesPage() {
                         // Допп = (Допп балл + ЛХ + Ci) - Обычные Штрафы
                         const netExtra = extraPts + bmPts + ciPts - penPts;
 
+                        const formattedExtra = formatNumber(Math.abs(netExtra));
+                        const extraSign = netExtra >= 0 ? '+' : '-';
+
                         return {
                             slot: r.slot_number,
                             name: r.player?.nickname || 'Неизвестный',
                             role: r.role,
-                            totalScore: computedTotal.toFixed(1),
-                            extra: netExtra >= 0 ? `+${netExtra.toFixed(1)}` : netExtra.toFixed(1),
-                            disc: discPts.toFixed(1)
+                            totalScore: formatNumber(computedTotal),
+                            extra: netExtra === 0 ? '0' : `${extraSign}${formattedExtra}`,
+                            disc: formatNumber(discPts)
                         };
                     });
 
