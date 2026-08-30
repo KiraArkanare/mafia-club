@@ -153,9 +153,7 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
             }
 
             // Преобразуем значение из формы ('civilians' / 'red' -> 'RED', 'mafia' / 'black' -> 'BLACK')
-            const formattedWinner = (winner === 'civilians' || winner === 'red' || winner === 'RED')
-                ? 'RED'
-                : 'BLACK';
+            const formattedWinner = winner === 'civilians' ? 'RED' : 'BLACK';
 
             // 1. Создаем запись в таблице `games`
             const { data: gameData, error: gameError } = await supabase
