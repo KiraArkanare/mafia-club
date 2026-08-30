@@ -22,6 +22,13 @@ function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
     );
 }
 
+// Форматирование: показывает сотые доли (1.25), если они есть, и целые числа без лишних нулей
+function formatNumber(num: number): string {
+    if (Number.isInteger(num)) return num.toString();
+    const fixed = num.toFixed(2);
+    return fixed.endsWith('0') ? num.toFixed(1) : fixed;
+}
+
 interface DbSeason {
     id: string;
     name: string;
@@ -43,11 +50,12 @@ interface RawResult {
     best_move_points: number;
     compensation_points: number;
     total_game_score: number;
-    role: 'citizen' | 'mafia' | 'don' | 'sheriff';
+    role: string;
     player: { nickname: string } | null;
     game: {
-        winner_team: 'civilians' | 'mafia';
+        winner_team: string;
         series_id: string;
+        first_night_killed_id: string | null;
     } | null;
 }
 
@@ -67,11 +75,13 @@ interface FormattedPlayer {
     kill: string;
     games: number;
     rawScore: number;
+    rawExtraSum: number;
+    rawWin: number;
 }
 
 const LEGEND_ITEMS = [
     { code: "Баллы", desc: "Сумма баллов (топ-4 серии в общем)" },
-    { code: "Σ (+/-)", desc: "Сумма доп. баллов" },
+    { code: "Σ (+/-)", desc: "Сумма доп. баллов (Допп - Штрафы)" },
     { code: "!", desc: "Дисциплинарные штрафы" },
     { code: "Лх", desc: "Баллы за лучший ход" },
     { code: "Ci", desc: "Компенсационные баллы" },
@@ -87,7 +97,7 @@ export default function RatingPage() {
     const [seasons, setSeasons] = useState<DbSeason[]>([]);
     const [seriesList, setSeriesList] = useState<DbSeries[]>([]);
     const [selectedSeasonId, setSelectedSeasonId] = useState<string | null>(null);
-    const [selectedSeriesId, setSelectedSeriesId] = useState<string>("all"); // "all" = Общий рейтинг
+    const [selectedSeriesId, setSelectedSeriesId] = useState<string>("all");
 
     const [isSeasonOpen, setIsSeasonOpen] = useState(false);
     const [isSeriesOpen, setIsSeriesOpen] = useState(false);
@@ -95,7 +105,6 @@ export default function RatingPage() {
     const [rawResults, setRawResults] = useState<RawResult[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Вспомогательная функция загрузки данных сезона
     const loadSeasonData = useCallback(async (seasonId: string) => {
         const { data: sData } = await supabase
             .from('series')
@@ -121,6 +130,7 @@ export default function RatingPage() {
                 game:games!inner(
                     winner_team,
                     series_id,
+                    first_night_killed_id,
                     series:series!inner(season_id)
                 )
             `)
@@ -135,34 +145,32 @@ export default function RatingPage() {
         setLoading(false);
     }, []);
 
-    // 1. Первоначальная загрузка сезонов и данных первого сезона
     useEffect(() => {
-    const initLoad = async () => {
-        const { data, error } = await supabase
-            .from('seasons')
-            .select('id, name, status')
-            .order('created_at', { ascending: false });
+        const initLoad = async () => {
+            const { data, error } = await supabase
+                .from('seasons')
+                .select('id, name, status')
+                .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error("Ошибка загрузки сезонов:", error);
-            setLoading(false);
-            return;
-        }
+            if (error) {
+                console.error("Ошибка загрузки сезонов:", error);
+                setLoading(false);
+                return;
+            }
 
-        if (data && data.length > 0) {
-            setSeasons(data);
-            const active = data.find(s => s.status === 'ACTIVE') || data[0];
-            setSelectedSeasonId(active.id);
-            await loadSeasonData(active.id);
-        } else {
-            setLoading(false);
-        }
-    };
+            if (data && data.length > 0) {
+                setSeasons(data);
+                const active = data.find(s => s.status === 'ACTIVE') || data[0];
+                setSelectedSeasonId(active.id);
+                await loadSeasonData(active.id);
+            } else {
+                setLoading(false);
+            }
+        };
 
-    initLoad();
-}, [loadSeasonData]);
+        initLoad();
+    }, [loadSeasonData]);
 
-    // Обработчик переключения сезона юзером
     const handleSelectSeason = (seasonId: string) => {
         setLoading(true);
         setSelectedSeasonId(seasonId);
@@ -171,7 +179,6 @@ export default function RatingPage() {
         loadSeasonData(seasonId);
     };
 
-    // 2. Вычисление и аггрегация рейтинга
     const playersRating = useMemo(() => {
         if (rawResults.length === 0) return [];
 
@@ -185,7 +192,7 @@ export default function RatingPage() {
             seriesScores: Record<string, number>;
             allGamesTotalScore: number;
             extraSum: number;
-            penalties: number;
+            discPenalties: number;
             bestMove: number;
             ci: number;
             wins: number;
@@ -206,7 +213,7 @@ export default function RatingPage() {
                     seriesScores: {},
                     allGamesTotalScore: 0,
                     extraSum: 0,
-                    penalties: 0,
+                    discPenalties: 0,
                     bestMove: 0,
                     ci: 0,
                     wins: 0,
@@ -219,24 +226,51 @@ export default function RatingPage() {
             const p = playerMap[pId];
             p.games += 1;
 
-            const gameTotal = Number(r.total_game_score || 0);
+            const winPts = Number(r.win_points || 0);
+            const extraPts = Number(r.extra_points || 0);
+            const bmPts = Number(r.best_move_points || 0);
+            const ciPts = Number(r.compensation_points || 0);
+            const penPts = Number(r.penalty_points || 0);
+            const discPts = Number(r.discipline_penalties || 0);
+
+            // Итоговый балл за игру
+            const gameTotal = r.total_game_score !== undefined && r.total_game_score !== null
+                ? Number(r.total_game_score)
+                : (winPts + extraPts + bmPts + ciPts - penPts - discPts);
+
             p.allGamesTotalScore += gameTotal;
             p.seriesScores[seriesId] = (p.seriesScores[seriesId] || 0) + gameTotal;
 
-            p.extraSum += Number(r.extra_points || 0);
-            p.penalties += Number(r.discipline_penalties || 0) + Number(r.penalty_points || 0);
-            p.bestMove += Number(r.best_move_points || 0);
-            p.ci += Number(r.compensation_points || 0);
+            // 1. Σ (+/-) = чисто Допп балл - Обычный штраф
+            p.extraSum += (extraPts - penPts);
 
-            const isRed = r.role === 'citizen' || r.role === 'sheriff';
-            const isBlack = r.role === 'mafia' || r.role === 'don';
-            const winTeam = r.game?.winner_team;
+            // 2. ! = Дисциплинарные штрафы
+            p.discPenalties += discPts;
 
-            const isWin = (isRed && winTeam === 'civilians') || (isBlack && winTeam === 'mafia');
+            p.bestMove += bmPts;
+            p.ci += ciPts;
+
+            // 3. У (Убийства) = проверяем совпадение с first_night_killed_id
+            if (r.game?.first_night_killed_id && r.game.first_night_killed_id === pId) {
+                p.kills += 1;
+            }
+
+            // 4. Победы
+            const normRole = (r.role || '').toUpperCase();
+            const normWinner = (r.game?.winner_team || '').toUpperCase();
+
+            const isRedRole = normRole === 'CITIZEN' || normRole === 'SHERIFF';
+            const isBlackRole = normRole === 'MAFIA' || normRole === 'DON';
+
+            const isRedWin = normWinner === 'RED' || normWinner === 'CIVILIANS';
+            const isBlackWin = normWinner === 'BLACK' || normWinner === 'MAFIA';
+
+            const isWin = (isRedRole && isRedWin) || (isBlackRole && isBlackWin);
+
             if (isWin) {
                 p.wins += 1;
-                if (r.role === 'don') p.donWins += 1;
-                if (r.role === 'sheriff') p.sheriffWins += 1;
+                if (normRole === 'DON') p.donWins += 1;
+                if (normRole === 'SHERIFF') p.sheriffWins += 1;
             }
         });
 
@@ -256,33 +290,35 @@ export default function RatingPage() {
                 change: 0,
                 id: pId,
                 name: p.name,
-                score: finalScore.toFixed(1),
-                extraSum: p.extraSum.toFixed(1),
-                penalty: p.penalties.toFixed(1),
-                extraAdd: p.bestMove.toFixed(1),
-                ci: p.ci.toFixed(1),
+                score: formatNumber(finalScore),
+                extraSum: formatNumber(p.extraSum),
+                penalty: formatNumber(p.discPenalties),
+                extraAdd: formatNumber(p.bestMove),
+                ci: formatNumber(p.ci),
                 win: p.wins.toString(),
                 don: p.donWins.toString(),
                 sheriff: p.sheriffWins.toString(),
                 kill: p.kills.toString(),
                 games: p.games,
-                rawScore: finalScore
+                rawScore: finalScore,
+                rawExtraSum: p.extraSum,
+                rawWin: p.wins
             };
         });
 
         resultList.sort((a, b) => {
             if (b.rawScore !== a.rawScore) return b.rawScore - a.rawScore;
-            if (parseFloat(b.extraSum) !== parseFloat(a.extraSum)) return parseFloat(b.extraSum) - parseFloat(a.extraSum);
-            return parseInt(b.win) - parseInt(a.win);
+            if (b.rawExtraSum !== a.rawExtraSum) return b.rawExtraSum - a.rawExtraSum;
+            return b.rawWin - a.rawWin;
         });
 
         return resultList.map((p, idx) => ({ ...p, rank: idx + 1 }));
     }, [rawResults, selectedSeriesId]);
 
     const currentSeasonObj = seasons.find(s => s.id === selectedSeasonId);
-	const seasonLabel = currentSeasonObj
-		? `${currentSeasonObj.name}${currentSeasonObj.status === 'ACTIVE' ? ' (Активен)' : ''}`
-		: "Выбор сезона";
+    const seasonLabel = currentSeasonObj
+        ? `${currentSeasonObj.name}${currentSeasonObj.status === 'ACTIVE' ? ' (Активен)' : ''}`
+        : "Выбор сезона";
 
     const seriesLabel = selectedSeriesId === "all"
         ? "Общий рейтинг"
@@ -290,8 +326,6 @@ export default function RatingPage() {
 
     return (
         <div className="min-h-screen flex flex-col relative overflow-y-scroll" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
-
-            {/* ФОНОВЫЕ СВЕЧЕНИЯ */}
             <div
                 className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none opacity-20 blur-3xl"
                 style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
@@ -304,11 +338,7 @@ export default function RatingPage() {
             <Header />
 
             <main className="pt-20 md:pt-24 pb-12 px-4 md:px-8 max-w-6xl mx-auto w-full flex-1 relative z-10">
-
-                {/* ВЕРХНЯЯ ПАНЕЛЬ С ДРОПДАУНАМИ */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-5 px-1">
-
-                    {/* ДРОПДАУН: СЕЗОН */}
                     <div className="relative">
                         <button
                             onClick={() => {
@@ -338,26 +368,24 @@ export default function RatingPage() {
                                 }}
                             >
                                 {seasons.map((s) => {
-									const label = `${s.name}${s.status === 'ACTIVE' ? ' (Активен)' : ''}`;
-									const isSelected = selectedSeasonId === s.id;
-									return (
-										<button
-											key={s.id}
-											onClick={() => handleSelectSeason(s.id)}
-											className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${
-												isSelected ? "text-emerald-400 bg-emerald-950/30" : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
-											}`}
-										>
-											<span>{label}</span>
-											{isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
-										</button>
-									);
-								})}
+                                    const label = `${s.name}${s.status === 'ACTIVE' ? ' (Активен)' : ''}`;
+                                    const isSelected = selectedSeasonId === s.id;
+                                    return (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => handleSelectSeason(s.id)}
+                                            className={`w-full text-left px-4 py-2 text-xs font-semibold transition-colors flex items-center justify-between ${isSelected ? "text-emerald-400 bg-emerald-950/30" : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+                                                }`}
+                                        >
+                                            <span>{label}</span>
+                                            {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
 
-                    {/* ДРОПДАУН: СЕРИЯ */}
                     <div className="relative">
                         <button
                             onClick={() => {
@@ -418,10 +446,8 @@ export default function RatingPage() {
                             </div>
                         )}
                     </div>
-
                 </div>
 
-                {/* ГЛАВНАЯ ТАБЛИЦА */}
                 <div
                     className="rounded-2xl border overflow-hidden mb-6"
                     style={{
@@ -484,7 +510,6 @@ export default function RatingPage() {
                                     </tr>
                                 ) : (
                                     playersRating.map((player, index) => {
-                                        // Разделитель квалификации показывается ТОЛЬКО в общем рейтинге
                                         const isGeneralView = selectedSeriesId === "all";
                                         const isQualified = player.games >= QUALIFICATION_LIMIT;
                                         const prevQualified = index > 0 ? playersRating[index - 1].games >= QUALIFICATION_LIMIT : true;
@@ -514,18 +539,6 @@ export default function RatingPage() {
                                                                         player.rank <= 5 ? "text-emerald-400" : "text-slate-500"
                                                         }>
                                                             {player.rank}
-                                                        </span>
-
-                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono">
-                                                            {player.change > 0 && (
-                                                                <span className="text-emerald-400 font-bold">▲{player.change}</span>
-                                                            )}
-                                                            {player.change < 0 && (
-                                                                <span className="text-rose-400 font-bold">▼{Math.abs(player.change)}</span>
-                                                            )}
-                                                            {player.change === 0 && (
-                                                                <span className="text-slate-600">—</span>
-                                                            )}
                                                         </span>
                                                     </td>
                                                     <td className="py-2.5 px-3">
@@ -558,7 +571,6 @@ export default function RatingPage() {
                     </div>
                 </div>
 
-                {/* БЛОК АННОТАЦИЙ / ЛЕГЕНДА */}
                 <div
                     className="rounded-2xl p-4 md:p-5"
                     style={{
@@ -584,7 +596,6 @@ export default function RatingPage() {
                         ))}
                     </div>
                 </div>
-
             </main>
         </div>
     );
