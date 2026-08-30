@@ -17,11 +17,13 @@ function UserIcon() {
 }
 
 function Logo() {
+    const basePath = process.env.NODE_ENV === 'production' ? '/mafia-club' : '';
+
     return (
         <Link href="/" className="flex items-center gap-2.5">
             <div className="relative w-8 h-8 flex-shrink-0">
                 <Image
-                    src="/logo.png"
+                    src={`${basePath}/logo.png`}
                     alt="Каменск Мафия"
                     width={32}
                     height={32}
