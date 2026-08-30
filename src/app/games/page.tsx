@@ -28,10 +28,10 @@ function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
 function RoleIcon({ role }: { role: 'citizen' | 'mafia' | 'don' | 'sheriff' }) {
     if (role === 'citizen') return null;
 
-    const iconPaths = {
-        sheriff: <Image src="/roles/sheriff.png" alt="Шериф" />,
-        don: <Image src="/roles/don.png" alt="Дон" />,
-        mafia: <Image src="/roles/mafia.png" alt="Мафия" />,
+    const iconPaths: Record<'sheriff' | 'don' | 'mafia', string> = {
+        sheriff: "/roles/sheriff.png",
+        don: "/roles/don.png",
+        mafia: "/roles/mafia.png",
     };
 
     return (
