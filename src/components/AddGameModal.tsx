@@ -50,7 +50,7 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
             slot: i + 1,
             nickname: "",
             role: "citizen",
-            score: "1.0",
+            score: "1.3",
             extraScore: "0.0",
             ciScore: "0.0",
             penalty: "0.0",
@@ -210,10 +210,13 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
             onClose();
 
         } catch (err: unknown) {
+            console.error("Детали ошибки сохранения:", err);
             if (err instanceof Error) {
                 setErrorMsg(err.message);
+            } else if (typeof err === 'object' && err !== null && 'message' in err) {
+                setErrorMsg(String((err as { message: unknown }).message));
             } else {
-                setErrorMsg("Произошла ошибка при сохранении протокола.");
+                setErrorMsg("Произошла неизвестная ошибка при сохранении протокола.");
             }
         } finally {
             setLoading(false);
