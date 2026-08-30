@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link"; // <-- Используем Link из Next.js
+import Link from "next/link"; 
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AuthModal from "@/components/AuthModal";
-import logoImg from "@/public/logo.png"; // <-- Прямой импорт картинки гарантирует правильный путь
+import logoImg from "../../public/logo.png";
 
 function UserIcon() {
     return (

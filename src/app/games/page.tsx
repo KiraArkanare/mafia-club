@@ -6,9 +6,9 @@ import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
 import AddGameModal from "@/components/AddGameModal";
 import { supabase } from "@/lib/supabase";
-import donRoleImg from "@/public/roles/don.png";
-import mafRoleImg from "@/public/roles/mafia.png";
-import sherRoleImg from "@/public/roles/sheriff.png";
+import donRoleImg from "../../public/roles/don.png";
+import mafRoleImg from "../../public/roles/mafia.png";
+import sherRoleImg from "../../public/roles/sheriff.png";
 
 function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
     return (
@@ -32,9 +32,9 @@ function RoleIcon({ role }: { role: 'citizen' | 'mafia' | 'don' | 'sheriff' }) {
     if (role === 'citizen') return null;
 
     const iconPaths = {
-        sheriff: <Image src={sherRoleImg} alt="Дон" />,
+        sheriff: <Image src={sherRoleImg} alt="Шериф" />,
         don: <Image src={donRoleImg} alt="Дон" />,
-        mafia: <Image src={mafRoleImg} alt="Дон" />,
+        mafia: <Image src={mafRoleImg} alt="Мафия" />,
     };
 
     return (
