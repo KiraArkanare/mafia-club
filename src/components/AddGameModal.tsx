@@ -185,7 +185,6 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
                 const ciPts = parseFloat(p.ciScore) || 0;
                 const bmPts = (p.slot === firstKilledSlot) ? parseFloat(bestMoveBonus) : 0;
 
-                const totalScore = winPts + extraPts + ciPts + bmPts - penaltyPts;
 
                 return {
                     game_id: gameData.id,
@@ -198,7 +197,6 @@ export default function AddGameModal({ onClose, onSuccess }: AddGameModalProps) 
                     discipline_penalties: discPenaltyPts,
                     best_move_points: bmPts,
                     compensation_points: ciPts,
-                    total_game_score: totalScore
                 };
             });
 
