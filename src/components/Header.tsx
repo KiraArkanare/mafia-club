@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import AuthModal from "@/components/AuthModal";
-import logoImg from "../../public/logo.png";
 
 function UserIcon() {
     return (
@@ -22,7 +21,7 @@ function Logo() {
         <Link href="/" className="flex items-center gap-2.5">
             <div className="relative w-8 h-8 flex-shrink-0">
                 <Image
-                    src={logoImg}
+                    src="/logo.png"
                     alt="Каменск Мафия"
                     width={32}
                     height={32}
