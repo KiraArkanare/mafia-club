@@ -1,9 +1,9 @@
 ﻿'use client';
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import Header from "@/components/Header";
-
 
 /* Крупная 3D Изометрическая графика на фоне */
 function IsometricBackgroundTable() {
@@ -17,7 +17,7 @@ function IsometricBackgroundTable() {
                 }}
             />
 
-            {/* 3D Наклон и разворот стола по твоим оси с эскиза */}
+            {/* 3D Наклон и разворот стола */}
             <div
                 className="w-full h-full flex items-center justify-center"
                 style={{
@@ -75,34 +75,56 @@ function IsometricBackgroundTable() {
     );
 }
 
-
 export default function Home() {
     const [playerCount, setPlayerCount] = useState<number>(0);
+    const [gameCount, setGameCount] = useState<number>(0);
+    const [redWinRate, setRedWinRate] = useState<number>(0);
+    const [blackWinRate, setBlackWinRate] = useState<number>(0);
 
     useEffect(() => {
         async function loadStats() {
-            // Загружаем реальное количество игроков из базы Supabase
-            const { count } = await supabase.from('players').select('*', { count: 'exact', head: true });
-            if (count !== null) setPlayerCount(count);
+            // 1. Количество игроков
+            const { count: players } = await supabase
+                .from('players')
+                .select('*', { count: 'exact', head: true });
+
+            if (players !== null) setPlayerCount(players);
+
+            // 2. Все сыгранные игры для расчёта винрейта
+            const { data: gamesData } = await supabase
+                .from('games')
+                .select('winner_team');
+
+            if (gamesData && gamesData.length > 0) {
+                const totalGames = gamesData.length;
+                setGameCount(totalGames);
+
+                const redWins = gamesData.filter(
+                    g => (g.winner_team || '').toUpperCase() === 'RED' || (g.winner_team || '').toUpperCase() === 'CIVILIANS'
+                ).length;
+
+                const redRate = Math.round((redWins / totalGames) * 100);
+                setRedWinRate(redRate);
+                setBlackWinRate(100 - redRate);
+            }
         }
+
         loadStats();
     }, []);
 
     const STATS = [
         { label: "Игроков в сезоне", value: playerCount.toString(), sub: "зарегистрировано" },
-        { label: "Сыграно партий", value: "0", sub: "с начала сезона" },
-        { label: "Побед мирных", value: "0%", sub: "vs 0% мафии" },
+        { label: "Сыграно партий", value: gameCount.toString(), sub: "с начала сезона" },
+        { label: "Побед мирных", value: `${redWinRate}%`, sub: `vs ${blackWinRate}% мафии` },
     ];
 
     return (
         <div className="min-h-full" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
-
             {/* HEADER */}
             <Header />
 
             {/* MAIN */}
             <main className="pt-28 min-h-screen flex items-center justify-center px-6 pb-12 relative overflow-hidden group">
-
                 <IsometricBackgroundTable />
 
                 <div
@@ -209,22 +231,24 @@ export default function Home() {
                             ))}
                         </div>
 
-                        {/* Кнопки */}
+                        {/* Кнопки перегружены в Link */}
                         <div className="flex gap-3 mt-8">
-                            <button
-                                className="px-6 py-2.5 rounded-xl text-sm transition-opacity hover:opacity-90 font-bold"
+                            <Link
+                                href="/rating"
+                                className="px-6 py-2.5 rounded-xl text-sm transition-opacity hover:opacity-90 font-bold flex items-center justify-center"
                                 style={{
                                     background: "linear-gradient(135deg, #1a6b8a, #0e8c6a)",
                                     color: "#fff",
                                 }}
                             >
                                 Рейтинг игроков
-                            </button>
-                            <button
-                                className="px-6 py-2.5 rounded-xl text-sm transition-colors border border-slate-700 text-slate-400 hover:text-white"
+                            </Link>
+                            <Link
+                                href="/games"
+                                className="px-6 py-2.5 rounded-xl text-sm transition-colors border border-slate-700 text-slate-400 hover:text-white flex items-center justify-center"
                             >
                                 Все партии
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -239,7 +263,6 @@ export default function Home() {
                     © 2026 KamenskMafia · Сезон 1
                 </span>
             </footer>
-
         </div>
     );
 }
