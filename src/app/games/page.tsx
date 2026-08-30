@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import AddGameModal from "@/components/AddGameModal";
 import { supabase } from "@/lib/supabase";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
     return (
         <svg
@@ -25,20 +27,24 @@ function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
     );
 }
 
-function RoleIcon({ role }: { role: 'citizen' | 'mafia' | 'don' | 'sheriff' }) {
-    if (role === 'citizen') return null;
+function RoleIcon({ role }: { role: string }) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === 'citizen') return null;
 
-    const iconPaths: Record<'sheriff' | 'don' | 'mafia', string> = {
-        sheriff: "/roles/sheriff.png",
-        don: "/roles/don.png",
-        mafia: "/roles/mafia.png",
+    const iconPaths: Record<string, string> = {
+        sheriff: `${basePath}/roles/sheriff.png`,
+        don: `${basePath}/roles/don.png`,
+        mafia: `${basePath}/roles/mafia.png`,
     };
+
+    const src = iconPaths[normalizedRole];
+    if (!src) return null;
 
     return (
         <div className="w-5 h-5 relative mx-auto flex items-center justify-center">
             <Image
-                src={iconPaths[role]}
-                alt={role}
+                src={src}
+                alt={normalizedRole}
                 width={20}
                 height={20}
                 className="object-contain"
@@ -50,17 +56,18 @@ function RoleIcon({ role }: { role: 'citizen' | 'mafia' | 'don' | 'sheriff' }) {
 interface PlayerSlot {
     slot: number;
     name: string;
-    role: 'citizen' | 'mafia' | 'don' | 'sheriff';
-    score: string;
+    role: string;
+    totalScore: string;
     extra: string;
+    disc: string;
 }
 
 interface GameRecord {
-    id: string; // UUID игры из Supabase
+    id: string;
     gameNumber: number;
     seriesNumber: number;
     date: string;
-    winner: 'civilians' | 'mafia';
+    winner: string;
     referee: string;
     comment: string;
     players: PlayerSlot[];
@@ -68,22 +75,26 @@ interface GameRecord {
 
 interface DbGameResult {
     slot_number: number;
-    role: 'citizen' | 'mafia' | 'don' | 'sheriff';
+    role: string;
     win_points: number;
     extra_points: number;
     best_move_points: number;
     compensation_points: number;
+    penalty_points: number;
+    discipline_penalties: number;
+    total_game_score?: number;
     player: { nickname: string } | null;
 }
 
 interface DbGame {
     id: string;
     game_number: number;
-    winner_team: 'civilians' | 'mafia';
+    winner_team: string;
     comments: string | null;
     series: { series_number: number; date: string } | null;
     results: DbGameResult[];
 }
+
 const ITEMS_PER_PAGE = 11;
 
 export default function GamesPage() {
@@ -95,7 +106,6 @@ export default function GamesPage() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [isAddGameOpen, setIsAddGameOpen] = useState(false);
 
-    // Функция загрузки игр из Supabase оборачивается в useCallback
     const fetchGames = useCallback(async () => {
         const { data, error } = await supabase
             .from('games')
@@ -106,13 +116,16 @@ export default function GamesPage() {
                 comments,
                 series:series!inner(series_number, date),
                 results:game_results(
-                slot_number,
-                role,
-                win_points,
-                extra_points,
-                best_move_points,
-                compensation_points,
-                player:players(nickname)
+                    slot_number,
+                    role,
+                    win_points,
+                    extra_points,
+                    best_move_points,
+                    compensation_points,
+                    penalty_points,
+                    discipline_penalties,
+                    total_game_score,
+                    player:players(nickname)
                 )
             `)
             .order('created_at', { ascending: false });
@@ -124,7 +137,6 @@ export default function GamesPage() {
         }
 
         if (data) {
-            // Приводим data к строгому типу DbGame[]
             const rawGames = data as unknown as DbGame[];
 
             const formattedGames: GameRecord[] = rawGames.map((game) => {
@@ -147,14 +159,27 @@ export default function GamesPage() {
                     .sort((a, b) => a.slot_number - b.slot_number)
                     .map((r) => {
                         const winPts = Number(r.win_points || 0);
-                        const addPts = Number(r.extra_points || 0) + Number(r.best_move_points || 0) + Number(r.compensation_points || 0);
+                        const extraPts = Number(r.extra_points || 0);
+                        const bmPts = Number(r.best_move_points || 0);
+                        const ciPts = Number(r.compensation_points || 0);
+                        const penPts = Number(r.penalty_points || 0);
+                        const discPts = Number(r.discipline_penalties || 0);
+
+                        // Расчет итогового балла (если в БД пустой - берем расчетное значение)
+                        const computedTotal = r.total_game_score !== undefined && r.total_game_score !== null
+                            ? Number(r.total_game_score)
+                            : (winPts + extraPts + bmPts + ciPts - penPts - discPts);
+
+                        // Допп = (Допп балл + ЛХ + Ci) - Обычные Штрафы
+                        const netExtra = extraPts + bmPts + ciPts - penPts;
 
                         return {
                             slot: r.slot_number,
                             name: r.player?.nickname || 'Неизвестный',
                             role: r.role,
-                            score: winPts.toFixed(1),
-                            extra: addPts.toFixed(1)
+                            totalScore: computedTotal.toFixed(1),
+                            extra: netExtra >= 0 ? `+${netExtra.toFixed(1)}` : netExtra.toFixed(1),
+                            disc: discPts.toFixed(1)
                         };
                     });
 
@@ -178,18 +203,13 @@ export default function GamesPage() {
 
     useEffect(() => {
         let isMounted = true;
-
         const load = async () => {
             if (isMounted) {
                 await fetchGames();
             }
         };
-
         load();
-
-        return () => {
-            isMounted = false;
-        };
+        return () => { isMounted = false; };
     }, [fetchGames]);
 
     const totalPages = Math.ceil(games.length / ITEMS_PER_PAGE);
@@ -204,8 +224,6 @@ export default function GamesPage() {
 
     return (
         <div className="min-h-screen bg-[#070d14] text-slate-200 flex flex-col font-sans overflow-y-scroll">
-
-            {/* ФОНОВЫЕ СВЕЧЕНИЯ */}
             <div
                 className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none opacity-20 blur-3xl z-0"
                 style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
@@ -218,7 +236,6 @@ export default function GamesPage() {
             <Header />
 
             <main className="flex-1 max-w-4xl w-full mx-auto px-4 md:px-8 pt-20 pb-8 flex flex-col justify-between">
-
                 <div>
                     <div className="flex flex-wrap items-center justify-between gap-3 mb-6 px-1">
                         <div>
@@ -258,7 +275,7 @@ export default function GamesPage() {
                         <div className="space-y-2.5">
                             {paginatedGames.map((game) => {
                                 const isOpen = expandedGameId === game.id;
-                                const isCivsWin = game.winner === 'civilians';
+                                const isCivsWin = game.winner === 'RED' || game.winner === 'civilians';
 
                                 return (
                                     <div
@@ -270,8 +287,7 @@ export default function GamesPage() {
                                         }}
                                     >
                                         <div
-                                            className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isCivsWin ? "bg-emerald-400" : "bg-sky-400"
-                                                }`}
+                                            className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isCivsWin ? "bg-emerald-400" : "bg-sky-400"}`}
                                         />
 
                                         <button
@@ -291,8 +307,8 @@ export default function GamesPage() {
                                                 <div className="flex items-center gap-2">
                                                     <span
                                                         className={`w-2 h-2 rounded-full ${isCivsWin
-                                                                ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
-                                                                : "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                                                            ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                                                            : "bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.8)]"
                                                             }`}
                                                     />
                                                     <span className={`text-xs font-semibold ${isCivsWin ? "text-emerald-400" : "text-sky-400"}`}>
@@ -313,7 +329,7 @@ export default function GamesPage() {
                                                                 <th className="py-2 px-3 w-12 text-center font-bold">№</th>
                                                                 <th className="py-2 px-3 font-bold">Игрок</th>
                                                                 <th className="py-2 px-3 w-16 text-center font-bold">Роль</th>
-                                                                <th className="py-2 px-3 w-32 text-right font-bold">Баллы / Допп</th>
+                                                                <th className="py-2 px-3 w-44 text-right font-bold">Баллы / Допп / Дисц</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y divide-slate-800/30 text-xs">
@@ -329,9 +345,11 @@ export default function GamesPage() {
                                                                         <RoleIcon role={p.role} />
                                                                     </td>
                                                                     <td className="py-1.5 px-3 text-right align-middle">
-                                                                        <span className="font-semibold text-slate-200">{p.score}</span>
-                                                                        <span className="text-slate-500 mx-1">/</span>
-                                                                        <span className="text-emerald-400 font-semibold">+{p.extra}</span>
+                                                                        <span className="font-semibold text-slate-100">{p.totalScore}</span>
+                                                                        <span className="text-slate-600 mx-1">/</span>
+                                                                        <span className="text-emerald-400 font-semibold">{p.extra}</span>
+                                                                        <span className="text-slate-600 mx-1">/</span>
+                                                                        <span className="text-amber-400 font-semibold">{p.disc}</span>
                                                                     </td>
                                                                 </tr>
                                                             ))}
@@ -364,7 +382,6 @@ export default function GamesPage() {
                     )}
                 </div>
 
-                {/* ПАГИНАЦИЯ */}
                 {totalPages > 1 && (
                     <div className="flex items-center justify-center gap-2 pt-8">
                         <button
@@ -380,8 +397,8 @@ export default function GamesPage() {
                                 key={page}
                                 onClick={() => setCurrentPage(page)}
                                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === page
-                                        ? "bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20"
-                                        : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200"
+                                    ? "bg-sky-500 text-slate-950 shadow-md shadow-sky-500/20"
+                                    : "bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200"
                                     }`}
                             >
                                 {page}
@@ -397,13 +414,12 @@ export default function GamesPage() {
                         </button>
                     </div>
                 )}
-
             </main>
 
             {isAddGameOpen && (
                 <AddGameModal
                     onClose={() => setIsAddGameOpen(false)}
-                    onSuccess={fetchGames} // Авто-обновление списка игр после успешного создания
+                    onSuccess={fetchGames}
                 />
             )}
         </div>
