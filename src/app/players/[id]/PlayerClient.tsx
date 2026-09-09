@@ -38,36 +38,37 @@ interface GameResultRow {
     } | null;
 }
 
-// Двойной кольцевой график с зазорами во внутреннем круге и фирмами цветами
+const GAMES_PER_PAGE = 5;
+
+// Двойной кольцевой график
 function DoubleDonutChart({
     winRate,
-    roleWins
+    roleGames
 }: {
     winRate: number;
-    roleWins: { citizen: number; sheriff: number; mafia: number; don: number }
+    roleGames: { citizen: number; sheriff: number; mafia: number; don: number }
 }) {
-    // Внешнее кольцо (WinRate)
     const rOuter = 42;
     const cOuter = 2 * Math.PI * rOuter;
     const offsetOuter = cOuter - (winRate / 100) * cOuter;
 
-    // Внутреннее кольцо (Разбивка побед по ролям)
     const rInner = 30;
     const cInner = 2 * Math.PI * rInner;
-    const totalWins = roleWins.citizen + roleWins.sheriff + roleWins.mafia + roleWins.don;
+
+    const totalGames = roleGames.citizen + roleGames.sheriff + roleGames.mafia + roleGames.don;
 
     const segments = useMemo(() => {
-        if (totalWins === 0) return [];
+        if (totalGames === 0) return [];
 
         const roles = [
-            { key: 'citizen', count: roleWins.citizen, color: '#34d399' }, // Мирный (Зеленый)
-            { key: 'sheriff', count: roleWins.sheriff, color: '#fbbf24' }, // Шериф (Желтый)
-            { key: 'mafia', count: roleWins.mafia, color: '#38bdf8' },   // Мафия (Голубой)
-            { key: 'don', count: roleWins.don, color: '#c084fc' },      // Дон (Фиолетово-пурпурный)
+            { key: 'citizen', count: roleGames.citizen, color: '#34d399' }, // Мирный (Зеленый)
+            { key: 'sheriff', count: roleGames.sheriff, color: '#fbbf24' }, // Шериф (Желтый)
+            { key: 'mafia', count: roleGames.mafia, color: '#38bdf8' },   // Мафия (Голубой)
+            { key: 'don', count: roleGames.don, color: '#c084fc' },      // Дон (Фиолетовый)
         ];
 
         const activeRoles = roles.filter(r => r.count > 0);
-        const gapSize = activeRoles.length > 1 ? 4 : 0; // зазор между дугами
+        const gapSize = activeRoles.length > 1 ? 3 : 0;
         const totalGap = gapSize * activeRoles.length;
         const availableCircumference = cInner - totalGap;
 
@@ -75,7 +76,7 @@ function DoubleDonutChart({
         return roles.map(role => {
             if (role.count === 0) return null;
 
-            const pct = role.count / totalWins;
+            const pct = role.count / totalGames;
             const strokeLength = pct * availableCircumference;
             const dashArray = `${strokeLength} ${cInner - strokeLength}`;
             const dashOffset = -currentOffset;
@@ -88,15 +89,13 @@ function DoubleDonutChart({
                 dashOffset
             };
         }).filter(Boolean);
-    }, [roleWins, totalWins, cInner]);
+    }, [roleGames, totalGames, cInner]);
 
     return (
         <div className="relative w-36 h-36 flex items-center justify-center flex-shrink-0">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                {/* ВНЕШНЕЕ КОЛЬЦО: Фон */}
+                {/* Внешнее кольцо (WinRate) */}
                 <circle cx="50" cy="50" r={rOuter} strokeWidth="5" className="text-slate-800/60" stroke="currentColor" fill="transparent" />
-
-                {/* ВНЕШНЕЕ КОЛЬЦО: Значение % WinRate */}
                 <circle
                     cx="50"
                     cy="50"
@@ -110,10 +109,9 @@ function DoubleDonutChart({
                     className="transition-all duration-1000 ease-out"
                 />
 
-                {/* ВНУТРЕННЕЕ КОЛЬЦО: Фон */}
+                {/* Внутреннее кольцо (Доли ролей) */}
                 <circle cx="50" cy="50" r={rInner} strokeWidth="4" className="text-slate-900/80" stroke="currentColor" fill="transparent" />
 
-                {/* ВНУТРЕННЕЕ КОЛЬЦО: Сегменты ролей с пробелами */}
                 {segments.map((s) => s && (
                     <circle
                         key={s.key}
@@ -149,7 +147,7 @@ function DoubleDonutChart({
 function DefaultAvatar({ name }: { name: string }) {
     const letter = name.trim().charAt(0).toUpperCase() || "?";
     return (
-        <div className="w-20 h-20 rounded-2xl bg-slate-900 border border-sky-500/30 flex items-center justify-center font-black text-sky-400 text-2xl shadow-xl flex-shrink-0">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-sky-950/40 border border-sky-500/30 flex items-center justify-center font-black text-sky-400 text-2xl shadow-[0_0_20px_rgba(56,189,248,0.15)] flex-shrink-0">
             {letter}
         </div>
     );
@@ -159,11 +157,11 @@ export default function PlayerClient() {
     const params = useParams();
     const playerId = params.id as string;
 
-    const [activeTab, setActiveTab] = useState<'info' | 'games'>('info');
     const [profile, setProfile] = useState<PlayerProfile | null>(null);
     const [awards, setAwards] = useState<PlayerAward[]>([]);
     const [gameResults, setGameResults] = useState<GameResultRow[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         if (!playerId) return;
@@ -298,6 +296,13 @@ export default function PlayerClient() {
         };
     }, [gameResults, playerId]);
 
+    // Пагинация истории игр
+    const totalPages = Math.ceil(gameResults.length / GAMES_PER_PAGE);
+    const paginatedGames = useMemo(() => {
+        const start = (currentPage - 1) * GAMES_PER_PAGE;
+        return gameResults.slice(start, start + GAMES_PER_PAGE);
+    }, [gameResults, currentPage]);
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center text-slate-500 text-sm" style={{ background: "#070d14" }}>
@@ -318,7 +323,7 @@ export default function PlayerClient() {
     return (
         <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
 
-            {/* Мягкое неоновое фоновое свечение как на странице рейтинга */}
+            {/* Неоновый фон */}
             <div
                 className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none opacity-20 blur-3xl"
                 style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
@@ -330,42 +335,11 @@ export default function PlayerClient() {
 
             <Header />
 
-            <main className="flex-1 max-w-5xl w-full mx-auto px-4 pt-24 pb-16 relative z-10">
+            <main className="flex-1 max-w-5xl w-full mx-auto px-4 pt-24 pb-20 relative z-10">
 
-                {/* ВКЛАДКИ В СТИЛЕ КНОПОК РЕЙТИНГА С НЕОНОВОЙ ПУЛЬСАЦИЕЙ */}
-                <div className="flex items-center gap-2 pl-2 mb-[-1px] z-20 relative">
-                    <button
-                        onClick={() => setActiveTab('info')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-t-xl border-t border-x text-xs font-bold transition-all ${activeTab === 'info'
-                                ? "text-emerald-400 bg-[#0d1622] border-[#34d399]/40 border-b-[#0d1622] shadow-[0_-4px_15px_rgba(52,211,153,0.15)]"
-                                : "text-slate-400 bg-[#070d14]/80 border-transparent hover:text-slate-200"
-                            }`}
-                        style={{ backdropFilter: "blur(8px)" }}
-                    >
-                        {activeTab === 'info' && (
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                        )}
-                        <span>Инфо</span>
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('games')}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-t-xl border-t border-x text-xs font-bold transition-all ${activeTab === 'games'
-                                ? "text-sky-400 bg-[#0d1622] border-[#38bdf8]/40 border-b-[#0d1622] shadow-[0_-4px_15px_rgba(56,189,248,0.15)]"
-                                : "text-slate-400 bg-[#070d14]/80 border-transparent hover:text-slate-200"
-                            }`}
-                        style={{ backdropFilter: "blur(8px)" }}
-                    >
-                        {activeTab === 'games' && (
-                            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]" />
-                        )}
-                        <span>Игры ({stats.totalGames})</span>
-                    </button>
-                </div>
-
-                {/* ЕДИНЫЙ DASHBOARD С ЭФФЕКТАМИ И СВЕЧЕНИЕМ ТАБЛИЦЫ РЕЙТИНГА */}
+                {/* ЕДИНАЯ КАРТОЧКА ПРОФИЛЯ */}
                 <div
-                    className="rounded-b-2xl rounded-tr-2xl p-6 md:p-8 relative z-10 border"
+                    className="rounded-2xl p-6 md:p-8 border flex flex-col gap-8"
                     style={{
                         background: "linear-gradient(145deg, rgba(13,22,33,0.95) 0%, rgba(8,16,25,0.98) 100%)",
                         borderColor: "rgba(52,211,153,0.2)",
@@ -374,255 +348,274 @@ export default function PlayerClient() {
                     }}
                 >
 
-                    {/* ВКЛАДКА 1: ИНФО */}
-                    {activeTab === 'info' && (
-                        <div className="flex flex-col gap-8">
+                    {/* ВЕРХНИЙ БЛОК: Визитка + Статистика WinRate */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                            {/* ДВУХКОЛОНОЧНАЯ СЕТКА */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-                                {/* ЛЕВАЯ КОЛОНКА: Визитка + Компактные цифры */}
-                                <div className="lg:col-span-5 flex flex-col gap-5">
-
-                                    {/* Шапка визитки */}
-                                    <div className="flex items-start gap-4 pb-5 border-b border-slate-800/80">
-                                        {profile.avatar_url ? (
-                                            <Image
-                                                src={profile.avatar_url}
-                                                alt={profile.nickname}
-                                                width={80}
-                                                height={80}
-                                                className="w-20 h-20 rounded-2xl object-cover border border-sky-500/30 flex-shrink-0 shadow-lg"
-                                            />
-                                        ) : (
-                                            <DefaultAvatar name={profile.nickname} />
-                                        )}
-
-                                        <div className="flex-1 min-w-0">
-                                            <h1 className="text-xl font-black text-slate-100 tracking-tight truncate">
-                                                {profile.nickname}
-                                            </h1>
-                                            {profile.full_name && (
-                                                <div className="text-xs font-semibold text-sky-400 mt-0.5 truncate">
-                                                    {profile.full_name}
-                                                </div>
-                                            )}
-                                            <p className="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">
-                                                {profile.bio || "Описание пока не добавлено."}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {/* Уменьшенные компактные плашки показателей */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-[#08111a] px-3.5 py-2.5 rounded-xl border border-slate-800/80">
-                                            <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Всего игр</div>
-                                            <div className="text-lg font-black text-slate-100 mt-0.5">{stats.totalGames}</div>
-                                        </div>
-
-                                        <div className="bg-[#08111a] px-3.5 py-2.5 rounded-xl border border-slate-800/80">
-                                            <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Ср. балл за игру</div>
-                                            <div className="text-lg font-black text-emerald-400 mt-0.5">{stats.avgScore}</div>
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                {/* ПРАВАЯ КОЛОНКА: График + Детализация + Любимая команда */}
-                                <div className="lg:col-span-7 flex flex-col gap-5">
-
-                                    <div className="text-xs font-bold text-slate-300 tracking-wide pb-2 border-b border-slate-800/80 flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                        Статистика WinRate
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row items-center gap-6 bg-[#08111a] p-4 rounded-xl border border-slate-800/80">
-
-                                        {/* Двойной кольцевой график */}
-                                        <DoubleDonutChart
-                                            winRate={stats.overallWinRate}
-                                            roleWins={{
-                                                citizen: stats.roles.citizen.wins,
-                                                sheriff: stats.roles.sheriff.wins,
-                                                mafia: stats.roles.mafia.wins,
-                                                don: stats.roles.don.wins,
-                                            }}
-                                        />
-
-                                        {/* Сетка показателей с обновленными цветами */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-
-                                            {/* Зеленый для Мирного */}
-                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#34d399] flex-shrink-0 shadow-[0_0_6px_#34d399]" />
-                                                    <span className="text-xs font-semibold text-slate-300">Мирный</span>
-                                                </div>
-                                                <span className="text-xs font-extrabold text-slate-100">
-                                                    {stats.roles.citizen.winRate}%
-                                                    <span className="text-[10px] text-slate-500 ml-1 font-normal">({stats.roles.citizen.wins}/{stats.roles.citizen.total})</span>
-                                                </span>
-                                            </div>
-
-                                            {/* Фирменный голубой для Мафии */}
-                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] flex-shrink-0 shadow-[0_0_6px_#38bdf8]" />
-                                                    <span className="text-xs font-semibold text-slate-300">Мафия</span>
-                                                </div>
-                                                <span className="text-xs font-extrabold text-slate-100">
-                                                    {stats.roles.mafia.winRate}%
-                                                    <span className="text-[10px] text-slate-500 ml-1 font-normal">({stats.roles.mafia.wins}/{stats.roles.mafia.total})</span>
-                                                </span>
-                                            </div>
-
-                                            {/* Желтый для Шерифа */}
-                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#fbbf24] flex-shrink-0 shadow-[0_0_6px_#fbbf24]" />
-                                                    <span className="text-xs font-semibold text-slate-300">Шериф</span>
-                                                </div>
-                                                <span className="text-xs font-extrabold text-slate-100">
-                                                    {stats.roles.sheriff.winRate}%
-                                                    <span className="text-[10px] text-slate-500 ml-1 font-normal">({stats.roles.sheriff.wins}/{stats.roles.sheriff.total})</span>
-                                                </span>
-                                            </div>
-
-                                            {/* Фиолетово-пурпурный для Дона */}
-                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#c084fc] flex-shrink-0 shadow-[0_0_6px_#c084fc]" />
-                                                    <span className="text-xs font-semibold text-slate-300">Дон</span>
-                                                </div>
-                                                <span className="text-xs font-extrabold text-slate-100">
-                                                    {stats.roles.don.winRate}%
-                                                    <span className="text-[10px] text-slate-500 ml-1 font-normal">({stats.roles.don.wins}/{stats.roles.don.total})</span>
-                                                </span>
-                                            </div>
-
-                                            {/* Черепок для Первоночи */}
-                                            <div className="sm:col-span-2 bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs">💀</span>
-                                                    <span className="text-xs font-semibold text-slate-300">Смерть в 1-ю ночь</span>
-                                                </div>
-                                                <span className="text-xs font-extrabold text-rose-400">
-                                                    {stats.firstNightKillRate}%
-                                                    <span className="text-[10px] text-slate-500 ml-1 font-normal">({stats.firstNightKills} раз)</span>
-                                                </span>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                    {/* НЕОНОВЫЙ БЛОК: Любимая команда (Красные vs Чёрные) */}
-                                    <div className="bg-[#08111a] p-4 rounded-xl border border-slate-800/80">
-                                        <div className="flex justify-between items-center text-xs font-bold mb-2.5">
-                                            <span className="text-emerald-400 flex items-center gap-1.5">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-                                                Красные ({stats.redTeamRatio}%)
-                                            </span>
-                                            <span className="text-sky-400 flex items-center gap-1.5">
-                                                Чёрные ({stats.blackTeamRatio}%)
-                                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]" />
-                                            </span>
-                                        </div>
-
-                                        {/* Объёмный светящийся прогресс-бар */}
-                                        <div className="w-full h-2.5 rounded-full bg-slate-900 p-0.5 border border-slate-800 flex overflow-hidden">
-                                            <div
-                                                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-l-full transition-all duration-700 shadow-[0_0_10px_rgba(52,211,153,0.5)]"
-                                                style={{ width: `${stats.redTeamRatio}%` }}
-                                            />
-                                            <div
-                                                className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-r-full transition-all duration-700 shadow-[0_0_10px_rgba(56,189,248,0.5)]"
-                                                style={{ width: `${stats.blackTeamRatio}%` }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                            {/* ОТДЕЛЬНЫЙ РЯД ВНИЗУ: НАГРАДЫ И ДОСТИЖЕНИЯ */}
-                            <div className="pt-6 border-t border-slate-800/80">
-                                <div className="text-xs font-bold text-slate-300 tracking-wide mb-4 flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                                    Награды и достижения
-                                </div>
-
-                                {awards.length === 0 ? (
-                                    <div className="text-xs text-slate-500 py-6 text-center border border-dashed border-slate-800 rounded-xl bg-[#08111a]/50">
-                                        У игрока пока нет полученных наград
-                                    </div>
+                        {/* Левая часть: Визитка */}
+                        <div className="lg:col-span-5 flex flex-col gap-5">
+                            <div className="flex items-start gap-4 pb-5 border-b border-slate-800/80">
+                                {profile.avatar_url ? (
+                                    <Image
+                                        src={profile.avatar_url}
+                                        alt={profile.nickname}
+                                        width={80}
+                                        height={80}
+                                        className="w-20 h-20 rounded-2xl object-cover border border-sky-500/30 shadow-[0_0_15px_rgba(56,189,248,0.2)] flex-shrink-0"
+                                    />
                                 ) : (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                        {awards.map((a) => (
-                                            <div
-                                                key={a.id}
-                                                className="bg-[#08111a] border border-slate-800 p-3.5 rounded-xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
-                                            >
-                                                <div className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-700 flex items-center justify-center text-sky-400 text-base mb-2 font-black shadow-[0_0_10px_rgba(56,189,248,0.15)]">
-                                                    ★
-                                                </div>
-                                                <div className="text-xs font-bold text-slate-200 line-clamp-1">
-                                                    {a.awards?.title || "Награда"}
-                                                </div>
-                                                <div className="text-[10px] text-slate-500 mt-1">
-                                                    {new Date(a.awarded_at).toLocaleDateString("ru-RU")}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <DefaultAvatar name={profile.nickname} />
                                 )}
-                            </div>
 
-                        </div>
-                    )}
-
-                    {/* ВКЛАДКА 2: ИГРЫ */}
-                    {activeTab === 'games' && (
-                        <div className="flex flex-col gap-4">
-                            <div className="text-xs font-bold text-slate-300 tracking-wide pb-2 border-b border-slate-800/80 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                                История сыгранных партий
-                            </div>
-
-                            {gameResults.length === 0 ? (
-                                <div className="text-xs text-slate-500 py-10 text-center border border-dashed border-slate-800 rounded-xl bg-[#08111a]/50">
-                                    Данный игрок еще не участвовал в зарегистрированных играх.
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-2">
-                                    {gameResults.map((g, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="bg-[#08111a] border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between hover:border-slate-700 transition-colors"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-xs font-bold text-slate-500">#{idx + 1}</span>
-                                                <div>
-                                                    <div className="text-xs font-bold text-slate-200">
-                                                        Роль: <span className="text-sky-400">{g.role}</span>
-                                                    </div>
-                                                    <div className="text-[10px] text-slate-500 mt-0.5">
-                                                        Победители: {g.game?.winner_team || '—'}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-right">
-                                                <div className="text-xs font-extrabold text-emerald-400">
-                                                    +{g.total_game_score} баллов
-                                                </div>
-                                            </div>
+                                <div className="flex-1 min-w-0">
+                                    <h1 className="text-xl font-black text-slate-100 tracking-tight truncate">
+                                        {profile.nickname}
+                                    </h1>
+                                    {profile.full_name && (
+                                        <div className="text-xs font-semibold text-sky-400 mt-0.5 truncate">
+                                            {profile.full_name}
                                         </div>
-                                    ))}
+                                    )}
+                                    <p className="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">
+                                        {profile.bio || "Описание пока не добавлено."}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-[#08111a] px-3.5 py-2.5 rounded-xl border border-slate-800/80">
+                                    <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Всего игр</div>
+                                    <div className="text-lg font-black text-slate-100 mt-0.5">{stats.totalGames}</div>
+                                </div>
+
+                                <div className="bg-[#08111a] px-3.5 py-2.5 rounded-xl border border-slate-800/80">
+                                    <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Ср. балл за игру</div>
+                                    <div className="text-lg font-black text-emerald-400 mt-0.5">{stats.avgScore}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Правая часть: График и подборка ролей */}
+                        <div className="lg:col-span-7 flex flex-col gap-5">
+                            <div className="text-xs font-bold text-slate-300 tracking-wide pb-2 border-b border-slate-800/80 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                Статистика WinRate
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row items-center gap-6 bg-[#08111a] p-4 rounded-xl border border-slate-800/80">
+                                <DoubleDonutChart
+                                    winRate={stats.overallWinRate}
+                                    roleGames={{
+                                        citizen: stats.roles.citizen.total,
+                                        sheriff: stats.roles.sheriff.total,
+                                        mafia: stats.roles.mafia.total,
+                                        don: stats.roles.don.total,
+                                    }}
+                                />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
+                                    <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#34d399] flex-shrink-0 shadow-[0_0_6px_#34d399]" />
+                                            <span className="text-xs font-semibold text-slate-300">Мирный</span>
+                                        </div>
+                                        <span className="text-xs font-extrabold text-slate-100">
+                                            {stats.roles.citizen.winRate}%
+                                            <span className="text-[10px] text-slate-400 ml-1 font-normal">({stats.roles.citizen.wins}/{stats.roles.citizen.total})</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] flex-shrink-0 shadow-[0_0_6px_#38bdf8]" />
+                                            <span className="text-xs font-semibold text-slate-300">Мафия</span>
+                                        </div>
+                                        <span className="text-xs font-extrabold text-slate-100">
+                                            {stats.roles.mafia.winRate}%
+                                            <span className="text-[10px] text-slate-400 ml-1 font-normal">({stats.roles.mafia.wins}/{stats.roles.mafia.total})</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#fbbf24] flex-shrink-0 shadow-[0_0_6px_#fbbf24]" />
+                                            <span className="text-xs font-semibold text-slate-300">Шериф</span>
+                                        </div>
+                                        <span className="text-xs font-extrabold text-slate-100">
+                                            {stats.roles.sheriff.winRate}%
+                                            <span className="text-[10px] text-slate-400 ml-1 font-normal">({stats.roles.sheriff.wins}/{stats.roles.sheriff.total})</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#c084fc] flex-shrink-0 shadow-[0_0_6px_#c084fc]" />
+                                            <span className="text-xs font-semibold text-slate-300">Дон</span>
+                                        </div>
+                                        <span className="text-xs font-extrabold text-slate-100">
+                                            {stats.roles.don.winRate}%
+                                            <span className="text-[10px] text-slate-400 ml-1 font-normal">({stats.roles.don.wins}/{stats.roles.don.total})</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="sm:col-span-2 bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs">💀</span>
+                                            <span className="text-xs font-semibold text-slate-300">Смерть в 1-ю ночь</span>
+                                        </div>
+                                        <span className="text-xs font-extrabold text-rose-400">
+                                            {stats.firstNightKillRate}%
+                                            <span className="text-[10px] text-slate-400 ml-1 font-normal">({stats.firstNightKills} раз)</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-[#08111a] p-4 rounded-xl border border-slate-800/80">
+                                <div className="flex justify-between items-center text-xs font-bold mb-2.5">
+                                    <span className="text-emerald-400 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                                        Красные ({stats.redTeamRatio}%)
+                                    </span>
+                                    <span className="text-sky-400 flex items-center gap-1.5">
+                                        Чёрные ({stats.blackTeamRatio}%)
+                                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]" />
+                                    </span>
+                                </div>
+                                <div className="w-full h-2.5 rounded-full bg-slate-900 p-0.5 border border-slate-800 flex overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-l-full transition-all duration-700 shadow-[0_0_10px_rgba(52,211,153,0.5)]"
+                                        style={{ width: `${stats.redTeamRatio}%` }}
+                                    />
+                                    <div
+                                        className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-r-full transition-all duration-700 shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+                                        style={{ width: `${stats.blackTeamRatio}%` }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* СЕДИННЫЙ БЛОК: НАГРАДЫ И ДОСТИЖЕНИЯ */}
+                    <div className="pt-4 border-t border-slate-800/80">
+                        <div className="text-xs font-bold text-slate-300 tracking-wide mb-3 flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                            Награды и достижения
+                        </div>
+
+                        {awards.length === 0 ? (
+                            <div className="text-xs text-slate-500 py-3 px-4 rounded-xl bg-[#08111a] border border-slate-800/80 flex items-center gap-2">
+                                <span>🏆</span>
+                                <span>У игрока пока нет полученных наград</span>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {awards.map((a) => (
+                                    <div
+                                        key={a.id}
+                                        className="bg-[#08111a] border border-slate-800 p-3.5 rounded-xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
+                                    >
+                                        <div className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-700 flex items-center justify-center text-sky-400 text-base mb-2 font-black shadow-[0_0_10px_rgba(56,189,248,0.15)]">
+                                            ★
+                                        </div>
+                                        <div className="text-xs font-bold text-slate-200 line-clamp-1">
+                                            {a.awards?.title || "Награда"}
+                                        </div>
+                                        <div className="text-[10px] text-slate-500 mt-1">
+                                            {new Date(a.awarded_at).toLocaleDateString("ru-RU")}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* НИЖНИЙ БЛОК: ИСТОРИЯ ИГР С ПАГИНАЦИЕЙ */}
+                    <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <div className="text-xs font-bold text-slate-300 tracking-wide flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+                                История игр ({stats.totalGames})
+                            </div>
+
+                            {totalPages > 1 && (
+                                <div className="text-[11px] font-semibold text-slate-500">
+                                    Страница {currentPage} из {totalPages}
                                 </div>
                             )}
                         </div>
-                    )}
+
+                        {gameResults.length === 0 ? (
+                            <div className="text-xs text-slate-500 py-6 text-center border border-dashed border-slate-800 rounded-xl bg-[#08111a]/50">
+                                Данный игрок еще не участвовал в зарегистрированных играх.
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex flex-col gap-2">
+                                    {paginatedGames.map((g, idx) => {
+                                        const globalIndex = gameResults.length - ((currentPage - 1) * GAMES_PER_PAGE + idx);
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className="bg-[#08111a] border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between hover:border-slate-700 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-xs font-bold text-slate-500">#{globalIndex}</span>
+                                                    <div>
+                                                        <div className="text-xs font-bold text-slate-200">
+                                                            Роль: <span className="text-sky-400">{g.role}</span>
+                                                        </div>
+                                                        <div className="text-[10px] text-slate-500 mt-0.5">
+                                                            Победители: {g.game?.winner_team || '—'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="text-right">
+                                                    <div className="text-xs font-extrabold text-emerald-400">
+                                                        +{g.total_game_score} баллов
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Пагинатор */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-center gap-2 pt-2">
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="px-3 py-1.5 rounded-lg bg-[#08111a] border border-slate-800 text-xs font-bold text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:border-sky-500/40 transition-all"
+                                        >
+                                            Назад
+                                        </button>
+                                        <div className="flex items-center gap-1 px-2">
+                                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                                <button
+                                                    key={page}
+                                                    onClick={() => setCurrentPage(page)}
+                                                    className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${currentPage === page
+                                                            ? "bg-sky-500 text-slate-950 shadow-[0_0_10px_rgba(56,189,248,0.4)]"
+                                                            : "bg-[#08111a] text-slate-400 hover:text-slate-200 border border-slate-800"
+                                                        }`}
+                                                >
+                                                    {page}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="px-3 py-1.5 rounded-lg bg-[#08111a] border border-slate-800 text-xs font-bold text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed hover:border-sky-500/40 transition-all"
+                                        >
+                                            Вперёд
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
 
                 </div>
 
