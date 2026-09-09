@@ -16,6 +16,25 @@ function UserIcon() {
     );
 }
 
+function MenuIcon({ isOpen }: { isOpen: boolean }) {
+    return (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {isOpen ? (
+                <>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </>
+            ) : (
+                <>
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="4" y1="12" x2="20" y2="12" />
+                    <line x1="4" y1="18" x2="20" y2="18" />
+                </>
+            )}
+        </svg>
+    );
+}
+
 function Logo() {
     const basePath = process.env.NODE_ENV === 'production' ? '/mafia-club' : '';
 
@@ -51,6 +70,7 @@ function Logo() {
 export default function Header() {
     const { isAdmin, signOut } = useAuth();
     const [authOpen, setAuthOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const pathname = usePathname();
 
     const navLinks = [
@@ -69,18 +89,11 @@ export default function Header() {
                     backdropFilter: "blur(16px)",
                 }}
             >
-                <div
-                    className="h-full px-6 md:px-10"
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr auto 1fr",
-                        alignItems: "center",
-                    }}
-                >
+                <div className="h-full px-4 md:px-10 flex items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr]">
                     {/* Левая часть - Логотип */}
                     <Logo />
 
-                    {/* Центр - Навигация */}
+                    {/* Центр - Десктопная навигация */}
                     <nav className="hidden md:flex items-center gap-1">
                         {navLinks.map((link) => {
                             const isActive = pathname === link.href || pathname === `${link.href}/`;
@@ -98,8 +111,8 @@ export default function Header() {
                         })}
                     </nav>
 
-                    {/* БЛОК АВТОРИЗАЦИИ */}
-                    <div className="flex justify-end items-center gap-3">
+                    {/* Правая часть - Авторизация + Кнопка мобильного меню */}
+                    <div className="flex justify-end items-center gap-2 md:gap-3">
                         {isAdmin ? (
                             <div className="flex items-center gap-2">
                                 <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-500/30">
@@ -122,8 +135,46 @@ export default function Header() {
                                 <UserIcon />
                             </button>
                         )}
+
+                        {/* Кнопка гамбургер-меню для мобилок */}
+                        <button
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                            className="w-9 h-9 md:hidden rounded-xl flex items-center justify-center transition-all text-slate-300 bg-[#0f1e2e] border border-[#1e3a4a]"
+                            aria-label="Открыть меню"
+                        >
+                            <MenuIcon isOpen={mobileMenuOpen} />
+                        </button>
                     </div>
                 </div>
+
+                {/* Выпадающее мобильное меню */}
+                {mobileMenuOpen && (
+                    <div
+                        className="md:hidden flex flex-col px-4 py-4 gap-2 border-b transition-all"
+                        style={{
+                            background: "rgba(7,13,20,0.98)",
+                            borderColor: "#142030",
+                            backdropFilter: "blur(20px)",
+                        }}
+                    >
+                        {navLinks.map((link) => {
+                            const isActive = pathname === link.href || pathname === `${link.href}/`;
+                            return (
+                                <Link
+                                    key={link.name}
+                                    href={link.href}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className={`px-4 py-3 rounded-xl text-base font-bold transition-all ${isActive
+                                            ? "text-emerald-400 bg-emerald-950/30 border border-emerald-500/20"
+                                            : "text-slate-300 hover:text-white bg-[#0f1e2e]/50"
+                                        }`}
+                                >
+                                    {link.name}
+                                </Link>
+                            );
+                        })}
+                    </div>
+                )}
             </header>
 
             {authOpen && <AuthModal onClose={() => setAuthOpen(false)} />}
