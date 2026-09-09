@@ -7,6 +7,8 @@ import { useParams } from "next/navigation";
 import Header from "@/components/Header";
 import { supabase } from "@/lib/supabase";
 
+const basePath = process.env.NODE_ENV === 'production' ? '/mafia-club' : '';
+
 interface PlayerProfile {
     id: string;
     nickname: string;
@@ -25,22 +27,108 @@ interface PlayerAward {
     } | null;
 }
 
-interface GameResultRow {
+interface PlayerSlot {
+    slot: number;
+    playerId: string;
+    name: string;
+    role: string;
+    totalScore: number;
+    totalScoreFormatted: string;
+    extra: string;
+    disc: string;
+}
+
+interface PlayerGameRecord {
+    id: string;
+    gameNumber: number;
+    seriesNumber: number;
+    date: string;
+    winner: string;
+    referee: string;
+    comment: string;
+    playerRole: string;
+    playerScore: number;
+    firstNightKilledId?: string | null;
+    players: PlayerSlot[];
+}
+
+interface DbGameResult {
+    player_id: string;
+    slot_number: number;
     role: string;
     win_points: number;
     extra_points: number;
-    total_game_score: number;
-    game: {
-        id: string;
-        winner_team: string;
-        first_night_killed_id: string | null;
-        created_at: string;
-    } | null;
+    best_move_points: number;
+    compensation_points: number;
+    penalty_points: number;
+    discipline_penalties: number;
+    total_game_score?: number;
+    player: { nickname: string } | null;
+}
+
+interface DbGame {
+    id: string;
+    game_number: number;
+    winner_team: string;
+    comments: string | null;
+    first_night_killed_id: string | null;
+    series: { series_number: number; date: string } | null;
+    results: DbGameResult[];
 }
 
 const GAMES_PER_PAGE = 5;
 
-// Двойной кольцевой график
+function formatNumber(num: number): string {
+    if (Number.isInteger(num)) return num.toString();
+    const fixed = num.toFixed(2);
+    return fixed.endsWith('0') ? num.toFixed(1) : fixed;
+}
+
+function ChevronDownIcon({ isOpen }: { isOpen?: boolean }) {
+    return (
+        <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform duration-300 ${isOpen ? "rotate-180 text-sky-400" : "text-slate-500"}`}
+        >
+            <polyline points="6 9 12 15 18 9" />
+        </svg>
+    );
+}
+
+function RoleIcon({ role }: { role: string }) {
+    const normalizedRole = role.toLowerCase();
+    if (normalizedRole === 'citizen') return null;
+
+    const iconPaths: Record<string, string> = {
+        sheriff: `${basePath}/roles/sheriff.png`,
+        don: `${basePath}/roles/don.png`,
+        mafia: `${basePath}/roles/mafia.png`,
+    };
+
+    const src = iconPaths[normalizedRole];
+    if (!src) return null;
+
+    return (
+        <div className="w-5 h-5 relative mx-auto flex items-center justify-center">
+            <Image
+                src={src}
+                alt={normalizedRole}
+                width={20}
+                height={20}
+                className="object-contain"
+                unoptimized
+            />
+        </div>
+    );
+}
+
 function DoubleDonutChart({
     winRate,
     roleGames
@@ -61,16 +149,15 @@ function DoubleDonutChart({
         if (totalGames === 0) return [];
 
         const roles = [
-            { key: 'citizen', count: roleGames.citizen, color: '#34d399' }, // Мирный (Зеленый)
-            { key: 'sheriff', count: roleGames.sheriff, color: '#fbbf24' }, // Шериф (Желтый)
-            { key: 'mafia', count: roleGames.mafia, color: '#38bdf8' },   // Мафия (Голубой)
-            { key: 'don', count: roleGames.don, color: '#c084fc' },      // Дон (Фиолетовый)
+            { key: 'citizen', count: roleGames.citizen, color: '#34d399' },
+            { key: 'sheriff', count: roleGames.sheriff, color: '#fbbf24' },
+            { key: 'mafia', count: roleGames.mafia, color: '#38bdf8' },
+            { key: 'don', count: roleGames.don, color: '#c084fc' },
         ];
 
         const activeRoles = roles.filter(r => r.count > 0);
         const gapSize = activeRoles.length > 1 ? 3 : 0;
-        const totalGap = gapSize * activeRoles.length;
-        const availableCircumference = cInner - totalGap;
+        const availableCircumference = cInner - (gapSize * activeRoles.length);
 
         let currentOffset = 0;
         return roles.map(role => {
@@ -83,18 +170,13 @@ function DoubleDonutChart({
 
             currentOffset += strokeLength + gapSize;
 
-            return {
-                ...role,
-                dashArray,
-                dashOffset
-            };
+            return { ...role, dashArray, dashOffset };
         }).filter(Boolean);
     }, [roleGames, totalGames, cInner]);
 
     return (
         <div className="relative w-36 h-36 flex items-center justify-center flex-shrink-0">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                {/* Внешнее кольцо (WinRate) */}
                 <circle cx="50" cy="50" r={rOuter} strokeWidth="5" className="text-slate-800/60" stroke="currentColor" fill="transparent" />
                 <circle
                     cx="50"
@@ -109,7 +191,6 @@ function DoubleDonutChart({
                     className="transition-all duration-1000 ease-out"
                 />
 
-                {/* Внутреннее кольцо (Доли ролей) */}
                 <circle cx="50" cy="50" r={rInner} strokeWidth="4" className="text-slate-900/80" stroke="currentColor" fill="transparent" />
 
                 {segments.map((s) => s && (
@@ -159,8 +240,10 @@ export default function PlayerClient() {
 
     const [profile, setProfile] = useState<PlayerProfile | null>(null);
     const [awards, setAwards] = useState<PlayerAward[]>([]);
-    const [gameResults, setGameResults] = useState<GameResultRow[]>([]);
+    const [playerGames, setPlayerGames] = useState<PlayerGameRecord[]>([]);
     const [loading, setLoading] = useState(true);
+
+    const [expandedGameId, setExpandedGameId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
@@ -169,6 +252,7 @@ export default function PlayerClient() {
         async function fetchPlayerData() {
             setLoading(true);
 
+            // 1. Профиль игрока
             const { data: pData } = await supabase
                 .from('players')
                 .select('*')
@@ -177,6 +261,7 @@ export default function PlayerClient() {
 
             if (pData) setProfile(pData);
 
+            // 2. Награды
             const { data: aData } = await supabase
                 .from('player_awards')
                 .select(`
@@ -188,15 +273,118 @@ export default function PlayerClient() {
 
             if (aData) setAwards(aData as unknown as PlayerAward[]);
 
-            const { data: gData } = await supabase
+            // 3. Получаем только ID игр, в которых участвовал данный игрок
+            const { data: userGameResults } = await supabase
                 .from('game_results')
-                .select(`
-                    role, win_points, extra_points, total_game_score,
-                    game:games ( id, winner_team, first_night_killed_id, created_at )
-                `)
+                .select('game_id')
                 .eq('player_id', playerId);
 
-            if (gData) setGameResults(gData as unknown as GameResultRow[]);
+            if (userGameResults && userGameResults.length > 0) {
+                const gameIds = userGameResults.map(g => g.game_id);
+
+                // Загружаем полные данные протокола для этих игр
+                const { data: gamesData } = await supabase
+                    .from('games')
+                    .select(`
+                        id,
+                        game_number,
+                        winner_team,
+                        comments,
+                        first_night_killed_id,
+                        created_at,
+                        series:series!inner(series_number, date),
+                        results:game_results(
+                            player_id,
+                            slot_number,
+                            role,
+                            win_points,
+                            extra_points,
+                            best_move_points,
+                            compensation_points,
+                            penalty_points,
+                            discipline_penalties,
+                            total_game_score,
+                            player:players(nickname)
+                        )
+                    `)
+                    .in('id', gameIds)
+                    .order('created_at', { ascending: false });
+
+                if (gamesData) {
+                    const rawGames = gamesData as unknown as DbGame[];
+
+                    const formatted: PlayerGameRecord[] = rawGames.map((game) => {
+                        let refName = "—";
+                        let commText = game.comments || "";
+
+                        if (commText.startsWith("Судья:")) {
+                            const parts = commText.split(". ");
+                            refName = parts[0].replace("Судья: ", "").trim();
+                            commText = parts.slice(1).join(". ");
+                        }
+
+                        let formattedDate = "—";
+                        if (game.series?.date) {
+                            const [year, month, day] = game.series.date.split('-');
+                            formattedDate = `${day}.${month}.${year}`;
+                        }
+
+                        let currPlayerRole = "—";
+                        let currPlayerScore = 0;
+
+                        const sortedPlayers: PlayerSlot[] = (game.results || [])
+                            .sort((a, b) => a.slot_number - b.slot_number)
+                            .map((r) => {
+                                const winPts = Number(r.win_points || 0);
+                                const extraPts = Number(r.extra_points || 0);
+                                const bmPts = Number(r.best_move_points || 0);
+                                const ciPts = Number(r.compensation_points || 0);
+                                const penPts = Number(r.penalty_points || 0);
+                                const discPts = Number(r.discipline_penalties || 0);
+
+                                const computedTotal = r.total_game_score !== undefined && r.total_game_score !== null
+                                    ? Number(r.total_game_score)
+                                    : (winPts + extraPts + bmPts + ciPts - penPts - discPts);
+
+                                const netExtra = extraPts + bmPts + ciPts - penPts;
+                                const formattedExtra = formatNumber(Math.abs(netExtra));
+                                const extraSign = netExtra >= 0 ? '+' : '-';
+
+                                if (r.player_id === playerId) {
+                                    currPlayerRole = r.role;
+                                    currPlayerScore = computedTotal;
+                                }
+
+                                return {
+                                    slot: r.slot_number,
+                                    playerId: r.player_id,
+                                    name: r.player?.nickname || 'Неизвестный',
+                                    role: r.role,
+                                    totalScore: computedTotal,
+                                    totalScoreFormatted: formatNumber(computedTotal),
+                                    extra: netExtra === 0 ? '0' : `${extraSign}${formattedExtra}`,
+                                    disc: formatNumber(discPts)
+                                };
+                            });
+
+                        return {
+                            id: game.id,
+                            gameNumber: game.game_number,
+                            seriesNumber: game.series?.series_number || 1,
+                            date: formattedDate,
+                            winner: game.winner_team,
+                            referee: refName,
+                            comment: commText,
+                            playerRole: currPlayerRole,
+                            playerScore: currPlayerScore,
+                            firstNightKilledId: game.first_night_killed_id,
+                            players: sortedPlayers
+                        };
+                    });
+
+                    setPlayerGames(formatted);
+                }
+            }
 
             setLoading(false);
         }
@@ -204,8 +392,9 @@ export default function PlayerClient() {
         fetchPlayerData();
     }, [playerId]);
 
+    // Расчет статистики WinRate и ролей
     const stats = useMemo(() => {
-        const total = gameResults.length;
+        const total = playerGames.length;
         if (total === 0) {
             return {
                 totalGames: 0,
@@ -237,16 +426,20 @@ export default function PlayerClient() {
             don: { total: 0, wins: 0, winRate: 0 },
         };
 
-        gameResults.forEach((row) => {
-            totalScoreSum += Number(row.total_game_score || 0);
+        playerGames.forEach((g) => {
+            totalScoreSum += g.playerScore;
 
-            const role = (row.role || '').toUpperCase();
-            const winnerTeam = (row.game?.winner_team || '').toUpperCase();
+            const role = (g.playerRole || '').toUpperCase();
+            const winnerTeam = (g.winner || '').toUpperCase();
 
             const isRedRole = role === 'CITIZEN' || role === 'RED';
             const isSheriff = role === 'SHERIFF';
             const isMafia = role === 'MAFIA' || role === 'BLACK';
             const isDon = role === 'DON';
+
+            if (g.firstNightKilledId === playerId) {
+                fnKills += 1;
+            }
 
             if (isRedRole || isSheriff) redGamesCount += 1;
             if (isMafia || isDon) blackGamesCount += 1;
@@ -257,10 +450,6 @@ export default function PlayerClient() {
             const isWin = ((isRedRole || isSheriff) && isRedWin) || ((isMafia || isDon) && isBlackWin);
 
             if (isWin) totalWins += 1;
-
-            if (row.game?.first_night_killed_id === playerId) {
-                fnKills += 1;
-            }
 
             if (isSheriff) {
                 roleStats.sheriff.total += 1;
@@ -294,14 +483,17 @@ export default function PlayerClient() {
             firstNightKillRate: Math.round((fnKills / total) * 100),
             roles: roleStats,
         };
-    }, [gameResults, playerId]);
+    }, [playerGames, playerId]);
 
-    // Пагинация истории игр
-    const totalPages = Math.ceil(gameResults.length / GAMES_PER_PAGE);
+    const totalPages = Math.ceil(playerGames.length / GAMES_PER_PAGE);
     const paginatedGames = useMemo(() => {
         const start = (currentPage - 1) * GAMES_PER_PAGE;
-        return gameResults.slice(start, start + GAMES_PER_PAGE);
-    }, [gameResults, currentPage]);
+        return playerGames.slice(start, start + GAMES_PER_PAGE);
+    }, [playerGames, currentPage]);
+
+    const toggleGame = (id: string) => {
+        setExpandedGameId(expandedGameId === id ? null : id);
+    };
 
     if (loading) {
         return (
@@ -323,7 +515,6 @@ export default function PlayerClient() {
     return (
         <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
 
-            {/* Неоновый фон */}
             <div
                 className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none opacity-20 blur-3xl"
                 style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
@@ -337,7 +528,6 @@ export default function PlayerClient() {
 
             <main className="flex-1 max-w-5xl w-full mx-auto px-4 pt-24 pb-20 relative z-10">
 
-                {/* ЕДИНАЯ КАРТОЧКА ПРОФИЛЯ */}
                 <div
                     className="rounded-2xl p-6 md:p-8 border flex flex-col gap-8"
                     style={{
@@ -348,10 +538,8 @@ export default function PlayerClient() {
                     }}
                 >
 
-                    {/* ВЕРХНИЙ БЛОК: Визитка + Статистика WinRate */}
+                    {/* ВЕРХНИЙ БЛОК: Профиль + WinRate */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-                        {/* Левая часть: Визитка */}
                         <div className="lg:col-span-5 flex flex-col gap-5">
                             <div className="flex items-start gap-4 pb-5 border-b border-slate-800/80">
                                 {profile.avatar_url ? (
@@ -394,7 +582,6 @@ export default function PlayerClient() {
                             </div>
                         </div>
 
-                        {/* Правая часть: График и подборка ролей */}
                         <div className="lg:col-span-7 flex flex-col gap-5">
                             <div className="text-xs font-bold text-slate-300 tracking-wide pb-2 border-b border-slate-800/80 flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -495,7 +682,7 @@ export default function PlayerClient() {
                         </div>
                     </div>
 
-                    {/* СЕДИННЫЙ БЛОК: НАГРАДЫ И ДОСТИЖЕНИЯ */}
+                    {/* СРЕДНИЙ БЛОК: НАГРАДЫ И ДОСТИЖЕНИЯ */}
                     <div className="pt-4 border-t border-slate-800/80">
                         <div className="text-xs font-bold text-slate-300 tracking-wide mb-3 flex items-center gap-2">
                             <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
@@ -529,7 +716,7 @@ export default function PlayerClient() {
                         )}
                     </div>
 
-                    {/* НИЖНИЙ БЛОК: ИСТОРИЯ ИГР С ПАГИНАЦИЕЙ */}
+                    {/* НИЖНИЙ БЛОК: ИСТОРИЯ ИГР С ТАБЛИЦЕЙ ПРОТОКОЛА */}
                     <div className="pt-4 border-t border-slate-800/80 flex flex-col gap-4">
                         <div className="flex items-center justify-between">
                             <div className="text-xs font-bold text-slate-300 tracking-wide flex items-center gap-2">
@@ -544,43 +731,126 @@ export default function PlayerClient() {
                             )}
                         </div>
 
-                        {gameResults.length === 0 ? (
+                        {playerGames.length === 0 ? (
                             <div className="text-xs text-slate-500 py-6 text-center border border-dashed border-slate-800 rounded-xl bg-[#08111a]/50">
                                 Данный игрок еще не участвовал в зарегистрированных играх.
                             </div>
                         ) : (
                             <>
-                                <div className="flex flex-col gap-2">
-                                    {paginatedGames.map((g, idx) => {
-                                        const globalIndex = gameResults.length - ((currentPage - 1) * GAMES_PER_PAGE + idx);
+                                <div className="space-y-2.5">
+                                    {paginatedGames.map((game) => {
+                                        const isOpen = expandedGameId === game.id;
+                                        const isCivsWin = game.winner === 'RED' || game.winner === 'civilians';
+
                                         return (
                                             <div
-                                                key={idx}
-                                                className="bg-[#08111a] border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between hover:border-slate-700 transition-colors"
+                                                key={game.id}
+                                                className="rounded-xl border transition-all duration-200 overflow-hidden relative"
+                                                style={{
+                                                    background: isOpen ? "#0b1622" : "#08111a",
+                                                    borderColor: isOpen ? "rgba(56,189,248,0.3)" : "rgba(20,32,48,0.8)",
+                                                }}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-xs font-bold text-slate-500">#{globalIndex}</span>
-                                                    <div>
-                                                        <div className="text-xs font-bold text-slate-200">
-                                                            Роль: <span className="text-sky-400">{g.role}</span>
-                                                        </div>
-                                                        <div className="text-[10px] text-slate-500 mt-0.5">
-                                                            Победители: {g.game?.winner_team || '—'}
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                <div className={`absolute left-0 top-0 bottom-0 w-1 transition-colors ${isCivsWin ? "bg-emerald-400" : "bg-sky-400"}`} />
 
-                                                <div className="text-right">
-                                                    <div className="text-xs font-extrabold text-emerald-400">
-                                                        +{g.total_game_score} баллов
+                                                <button
+                                                    onClick={() => toggleGame(game.id)}
+                                                    className="w-full pl-5 pr-4 py-3 flex items-center justify-between gap-4 text-left hover:bg-slate-800/20 transition-colors cursor-pointer"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-xs md:text-sm font-bold text-slate-100">
+                                                            Игра #{game.gameNumber} <span className="text-xs text-slate-500 font-normal">(Серия #{game.seriesNumber})</span>
+                                                        </span>
+                                                        <span className="text-[10px] md:text-[11px] text-slate-400 bg-slate-900/90 px-2 py-0.5 rounded border border-slate-800/80">
+                                                            {game.date}
+                                                        </span>
                                                     </div>
-                                                </div>
+
+                                                    <div className="flex items-center gap-4">
+                                                        {/* Итоговый балл конкретно этого игрока за партию */}
+                                                        <div className="text-right">
+                                                            <div className={`text-xs font-black ${game.playerScore >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                                                {formatNumber(game.playerScore)} балла
+                                                            </div>
+                                                            <div className="text-[10px] text-slate-500">
+                                                                Роль: {game.playerRole}
+                                                            </div>
+                                                        </div>
+
+                                                        <ChevronDownIcon isOpen={isOpen} />
+                                                    </div>
+                                                </button>
+
+                                                {isOpen && (
+                                                    <div className="px-5 pb-4 pt-1 border-t border-slate-800/50">
+                                                        <div className="overflow-x-auto rounded-lg border border-slate-800/80 mb-3 bg-[#070e17]">
+                                                            <table className="w-full text-left border-collapse">
+                                                                <thead>
+                                                                    <tr className="text-[11px] text-slate-400 bg-slate-900/60 border-b border-slate-800">
+                                                                        <th className="py-2 px-3 w-12 text-center font-bold">№</th>
+                                                                        <th className="py-2 px-3 font-bold">Игрок</th>
+                                                                        <th className="py-2 px-3 w-16 text-center font-bold">Роль</th>
+                                                                        <th className="py-2 px-3 w-44 text-right font-bold">Баллы / Допп / Дисц</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-slate-800/30 text-xs">
+                                                                    {game.players.map((p) => {
+                                                                        const isCurrentPlayer = p.playerId === playerId;
+                                                                        return (
+                                                                            <tr
+                                                                                key={p.slot}
+                                                                                className={`transition-colors h-[36px] ${isCurrentPlayer
+                                                                                        ? "bg-sky-950/40 font-bold border-l-2 border-l-sky-400"
+                                                                                        : "hover:bg-slate-800/20"
+                                                                                    }`}
+                                                                            >
+                                                                                <td className="py-1.5 px-3 text-center font-bold text-slate-400 align-middle">
+                                                                                    {p.slot}
+                                                                                </td>
+                                                                                <td className={`py-1.5 px-3 align-middle ${isCurrentPlayer ? "text-sky-300" : "text-slate-200"}`}>
+                                                                                    {p.name} {isCurrentPlayer && "(Вы)"}
+                                                                                </td>
+                                                                                <td className="py-1.5 px-3 text-center align-middle">
+                                                                                    <RoleIcon role={p.role} />
+                                                                                </td>
+                                                                                <td className="py-1.5 px-3 text-right align-middle">
+                                                                                    <span className="font-semibold text-slate-100">{p.totalScoreFormatted}</span>
+                                                                                    <span className="text-slate-600 mx-1">/</span>
+                                                                                    <span className="text-emerald-400 font-semibold">{p.extra}</span>
+                                                                                    <span className="text-slate-600 mx-1">/</span>
+                                                                                    <span className="text-amber-400 font-semibold">{p.disc}</span>
+                                                                                </td>
+                                                                            </tr>
+                                                                        );
+                                                                    })}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                        <div className="rounded-lg p-3 bg-[#070e17] border border-slate-800/80 text-xs">
+                                                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/60">
+                                                                <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                                                                    <span>📝</span> Комментарии ведущего
+                                                                </span>
+                                                                <span className="text-slate-400">
+                                                                    Судья: <strong className="text-sky-400 font-semibold">{game.referee}</strong>
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="space-y-1 text-slate-300">
+                                                                <div className="leading-relaxed">
+                                                                    {game.comment || "Комментарии к партии отсутствуют."}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
                                 </div>
 
-                                {/* Пагинатор */}
+                                {/* Пагинация */}
                                 {totalPages > 1 && (
                                     <div className="flex items-center justify-center gap-2 pt-2">
                                         <button
