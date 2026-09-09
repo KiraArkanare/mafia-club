@@ -129,6 +129,24 @@ function RoleIcon({ role }: { role: string }) {
     );
 }
 
+function getRoleLabel(role: string): string {
+    const normalized = role.toLowerCase();
+    switch (normalized) {
+        case 'citizen':
+        case 'red':
+            return 'Мирный';
+        case 'sheriff':
+            return 'Шериф';
+        case 'mafia':
+        case 'black':
+            return 'Мафия';
+        case 'don':
+            return 'Дон';
+        default:
+            return role;
+    }
+}
+
 function DoubleDonutChart({
     winRate,
     roleGames
@@ -773,7 +791,7 @@ export default function PlayerClient() {
                                                                 {formatNumber(game.playerScore)} балла
                                                             </div>
                                                             <div className="text-[10px] text-slate-500">
-                                                                Роль: {game.playerRole}
+                                                                Роль: {getRoleLabel(game.playerRole)}
                                                             </div>
                                                         </div>
 
@@ -808,7 +826,7 @@ export default function PlayerClient() {
                                                                                     {p.slot}
                                                                                 </td>
                                                                                 <td className={`py-1.5 px-3 align-middle ${isCurrentPlayer ? "text-sky-300" : "text-slate-200"}`}>
-                                                                                    {p.name} {isCurrentPlayer && "(Вы)"}
+                                                                                    {p.name}
                                                                                 </td>
                                                                                 <td className="py-1.5 px-3 text-center align-middle">
                                                                                     <RoleIcon role={p.role} />
