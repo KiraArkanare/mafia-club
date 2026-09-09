@@ -38,7 +38,7 @@ interface GameResultRow {
     } | null;
 }
 
-// Двойной кольцевой график: Внешний (Общий WinRate), Внутренний (Разбивка побед по 4 ролям)
+// Двойной кольцевой график с зазорами во внутреннем круге и фирмами цветами
 function DoubleDonutChart({
     winRate,
     roleWins
@@ -51,49 +51,57 @@ function DoubleDonutChart({
     const cOuter = 2 * Math.PI * rOuter;
     const offsetOuter = cOuter - (winRate / 100) * cOuter;
 
-    // Внутреннее кольцо (Победы по ролям)
+    // Внутреннее кольцо (Разбивка побед по ролям)
     const rInner = 30;
     const cInner = 2 * Math.PI * rInner;
     const totalWins = roleWins.citizen + roleWins.sheriff + roleWins.mafia + roleWins.don;
 
-    // Расчет долей сегментов для внутреннего кольца
     const segments = useMemo(() => {
         if (totalWins === 0) return [];
 
         const roles = [
-            { key: 'citizen', count: roleWins.citizen, color: '#ef4444' }, // Мирный (Red)
-            { key: 'sheriff', count: roleWins.sheriff, color: '#38bdf8' }, // Шериф (Sky)
-            { key: 'mafia', count: roleWins.mafia, color: '#f8fafc' },   // Мафия (White)
-            { key: 'don', count: roleWins.don, color: '#fbbf24' },      // Дон (Amber)
+            { key: 'citizen', count: roleWins.citizen, color: '#34d399' }, // Мирный (Зеленый)
+            { key: 'sheriff', count: roleWins.sheriff, color: '#fbbf24' }, // Шериф (Желтый)
+            { key: 'mafia', count: roleWins.mafia, color: '#38bdf8' },   // Мафия (Голубой)
+            { key: 'don', count: roleWins.don, color: '#c084fc' },      // Дон (Фиолетово-пурпурный)
         ];
+
+        const activeRoles = roles.filter(r => r.count > 0);
+        const gapSize = activeRoles.length > 1 ? 4 : 0; // зазор между дугами
+        const totalGap = gapSize * activeRoles.length;
+        const availableCircumference = cInner - totalGap;
 
         let currentOffset = 0;
         return roles.map(role => {
+            if (role.count === 0) return null;
+
             const pct = role.count / totalWins;
-            const dashArray = `${pct * cInner} ${cInner}`;
+            const strokeLength = pct * availableCircumference;
+            const dashArray = `${strokeLength} ${cInner - strokeLength}`;
             const dashOffset = -currentOffset;
-            currentOffset += pct * cInner;
+
+            currentOffset += strokeLength + gapSize;
 
             return {
                 ...role,
                 dashArray,
                 dashOffset
             };
-        });
+        }).filter(Boolean);
     }, [roleWins, totalWins, cInner]);
 
     return (
         <div className="relative w-36 h-36 flex items-center justify-center flex-shrink-0">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 {/* ВНЕШНЕЕ КОЛЬЦО: Фон */}
-                <circle cx="50" cy="50" r={rOuter} strokeWidth="6" className="text-slate-800" stroke="currentColor" fill="transparent" />
+                <circle cx="50" cy="50" r={rOuter} strokeWidth="5" className="text-slate-800/60" stroke="currentColor" fill="transparent" />
 
                 {/* ВНЕШНЕЕ КОЛЬЦО: Значение % WinRate */}
                 <circle
                     cx="50"
                     cy="50"
                     r={rOuter}
-                    strokeWidth="6"
+                    strokeWidth="5"
                     strokeDasharray={cOuter}
                     strokeDashoffset={offsetOuter}
                     strokeLinecap="round"
@@ -103,18 +111,19 @@ function DoubleDonutChart({
                 />
 
                 {/* ВНУТРЕННЕЕ КОЛЬЦО: Фон */}
-                <circle cx="50" cy="50" r={rInner} strokeWidth="5" className="text-slate-900" stroke="currentColor" fill="transparent" />
+                <circle cx="50" cy="50" r={rInner} strokeWidth="4" className="text-slate-900/80" stroke="currentColor" fill="transparent" />
 
-                {/* ВНУТРЕННЕЕ КОЛЬЦО: Сегменты ролей */}
-                {segments.map(s => (
+                {/* ВНУТРЕННЕЕ КОЛЬЦО: Сегменты ролей с пробелами */}
+                {segments.map((s) => s && (
                     <circle
                         key={s.key}
                         cx="50"
                         cy="50"
                         r={rInner}
-                        strokeWidth="5"
+                        strokeWidth="4"
                         strokeDasharray={s.dashArray}
                         strokeDashoffset={s.dashOffset}
+                        strokeLinecap="round"
                         stroke={s.color}
                         fill="transparent"
                         className="transition-all duration-700 ease-out"
@@ -140,7 +149,7 @@ function DoubleDonutChart({
 function DefaultAvatar({ name }: { name: string }) {
     const letter = name.trim().charAt(0).toUpperCase() || "?";
     return (
-        <div className="w-24 h-24 rounded-2xl bg-slate-900 border border-sky-500/30 flex items-center justify-center font-black text-sky-400 text-3xl shadow-xl flex-shrink-0">
+        <div className="w-20 h-20 rounded-2xl bg-slate-900 border border-sky-500/30 flex items-center justify-center font-black text-sky-400 text-2xl shadow-xl flex-shrink-0">
             {letter}
         </div>
     );
@@ -162,7 +171,6 @@ export default function PlayerClient() {
         async function fetchPlayerData() {
             setLoading(true);
 
-            // 1. Профиль
             const { data: pData } = await supabase
                 .from('players')
                 .select('*')
@@ -171,7 +179,6 @@ export default function PlayerClient() {
 
             if (pData) setProfile(pData);
 
-            // 2. Награды
             const { data: aData } = await supabase
                 .from('player_awards')
                 .select(`
@@ -183,7 +190,6 @@ export default function PlayerClient() {
 
             if (aData) setAwards(aData as unknown as PlayerAward[]);
 
-            // 3. Результаты игр
             const { data: gData } = await supabase
                 .from('game_results')
                 .select(`
@@ -200,7 +206,6 @@ export default function PlayerClient() {
         fetchPlayerData();
     }, [playerId]);
 
-    // Расчет статистики
     const stats = useMemo(() => {
         const total = gameResults.length;
         if (total === 0) {
@@ -311,69 +316,90 @@ export default function PlayerClient() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "#070d14" }}>
+        <div className="min-h-screen flex flex-col relative overflow-hidden" style={{ background: "#070d14", fontFamily: "var(--font-body)" }}>
 
-            {/* Мягкие фоновые свечения */}
+            {/* Мягкое неоновое фоновое свечение как на странице рейтинга */}
             <div
-                className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[700px] rounded-full pointer-events-none opacity-15 blur-3xl"
-                style={{ background: "radial-gradient(circle, rgba(56,189,248,0.2) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
+                className="absolute -top-40 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none opacity-20 blur-3xl"
+                style={{ background: "radial-gradient(circle, rgba(56,189,248,0.4) 0%, rgba(52,211,153,0.1) 70%, transparent 100%)" }}
+            />
+            <div
+                className="absolute top-1/2 -right-40 w-[500px] h-[500px] rounded-full pointer-events-none opacity-15 blur-3xl"
+                style={{ background: "radial-gradient(circle, rgba(52,211,153,0.4) 0%, rgba(56,189,248,0.1) 70%, transparent 100%)" }}
             />
 
             <Header />
 
             <main className="flex-1 max-w-5xl w-full mx-auto px-4 pt-24 pb-16 relative z-10">
 
-                {/* БРАУЗЕРНЫЕ ВКЛАДКИ (TABS) НАД ДАШБОРДОМ */}
-                <div className="flex items-center gap-1.5 pl-2 mb-[-1px] z-20 relative">
+                {/* ВКЛАДКИ В СТИЛЕ КНОПОК РЕЙТИНГА С НЕОНОВОЙ ПУЛЬСАЦИЕЙ */}
+                <div className="flex items-center gap-2 pl-2 mb-[-1px] z-20 relative">
                     <button
                         onClick={() => setActiveTab('info')}
-                        className={`px-6 py-2.5 rounded-t-2xl text-xs font-bold transition-all border-t border-x ${activeTab === 'info'
-                                ? "bg-[#0c1622] text-sky-400 border-[#162535] border-b-[#0c1622] shadow-lg"
-                                : "bg-[#070d14] text-slate-400 border-transparent hover:text-slate-200 hover:bg-[#0c1622]/50"
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-t-xl border-t border-x text-xs font-bold transition-all ${activeTab === 'info'
+                                ? "text-emerald-400 bg-[#0d1622] border-[#34d399]/40 border-b-[#0d1622] shadow-[0_-4px_15px_rgba(52,211,153,0.15)]"
+                                : "text-slate-400 bg-[#070d14]/80 border-transparent hover:text-slate-200"
                             }`}
+                        style={{ backdropFilter: "blur(8px)" }}
                     >
-                        Инфо
+                        {activeTab === 'info' && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                        )}
+                        <span>Инфо</span>
                     </button>
+
                     <button
                         onClick={() => setActiveTab('games')}
-                        className={`px-6 py-2.5 rounded-t-2xl text-xs font-bold transition-all border-t border-x ${activeTab === 'games'
-                                ? "bg-[#0c1622] text-emerald-400 border-[#162535] border-b-[#0c1622] shadow-lg"
-                                : "bg-[#070d14] text-slate-400 border-transparent hover:text-slate-200 hover:bg-[#0c1622]/50"
+                        className={`flex items-center gap-2 px-5 py-2.5 rounded-t-xl border-t border-x text-xs font-bold transition-all ${activeTab === 'games'
+                                ? "text-sky-400 bg-[#0d1622] border-[#38bdf8]/40 border-b-[#0d1622] shadow-[0_-4px_15px_rgba(56,189,248,0.15)]"
+                                : "text-slate-400 bg-[#070d14]/80 border-transparent hover:text-slate-200"
                             }`}
+                        style={{ backdropFilter: "blur(8px)" }}
                     >
-                        Игры ({stats.totalGames})
+                        {activeTab === 'games' && (
+                            <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse shadow-[0_0_8px_#38bdf8]" />
+                        )}
+                        <span>Игры ({stats.totalGames})</span>
                     </button>
                 </div>
 
-                {/* ЕДИНЫЙ DASHBOARD КОНТЕЙНЕР */}
-                <div className="bg-[#0c1622] border border-[#162535] rounded-b-3xl rounded-tr-3xl p-6 md:p-8 shadow-2xl relative z-10">
+                {/* ЕДИНЫЙ DASHBOARD С ЭФФЕКТАМИ И СВЕЧЕНИЕМ ТАБЛИЦЫ РЕЙТИНГА */}
+                <div
+                    className="rounded-b-2xl rounded-tr-2xl p-6 md:p-8 relative z-10 border"
+                    style={{
+                        background: "linear-gradient(145deg, rgba(13,22,33,0.95) 0%, rgba(8,16,25,0.98) 100%)",
+                        borderColor: "rgba(52,211,153,0.2)",
+                        boxShadow: "0 20px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)",
+                        backdropFilter: "blur(12px)"
+                    }}
+                >
 
                     {/* ВКЛАДКА 1: ИНФО */}
                     {activeTab === 'info' && (
                         <div className="flex flex-col gap-8">
 
-                            {/* ДВУХКОЛОНОЧНАЯ СЕТКА СТАТИСТИКИ */}
+                            {/* ДВУХКОЛОНОЧНАЯ СЕТКА */}
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                                {/* ЛЕВАЯ КОЛОНКА: Визитка + Быстрые цифры */}
-                                <div className="lg:col-span-5 flex flex-col gap-6">
+                                {/* ЛЕВАЯ КОЛОНКА: Визитка + Компактные цифры */}
+                                <div className="lg:col-span-5 flex flex-col gap-5">
 
                                     {/* Шапка визитки */}
-                                    <div className="flex items-start gap-4 pb-6 border-b border-[#162535]">
+                                    <div className="flex items-start gap-4 pb-5 border-b border-slate-800/80">
                                         {profile.avatar_url ? (
                                             <Image
                                                 src={profile.avatar_url}
                                                 alt={profile.nickname}
-                                                width={96}
-                                                height={96}
-                                                className="w-24 h-24 rounded-2xl object-cover border border-sky-500/30 flex-shrink-0 shadow-xl"
+                                                width={80}
+                                                height={80}
+                                                className="w-20 h-20 rounded-2xl object-cover border border-sky-500/30 flex-shrink-0 shadow-lg"
                                             />
                                         ) : (
                                             <DefaultAvatar name={profile.nickname} />
                                         )}
 
                                         <div className="flex-1 min-w-0">
-                                            <h1 className="text-2xl font-black text-slate-100 tracking-tight truncate">
+                                            <h1 className="text-xl font-black text-slate-100 tracking-tight truncate">
                                                 {profile.nickname}
                                             </h1>
                                             {profile.full_name && (
@@ -387,41 +413,30 @@ export default function PlayerClient() {
                                         </div>
                                     </div>
 
-                                    {/* Плашки ключевых показателей */}
+                                    {/* Уменьшенные компактные плашки показателей */}
                                     <div className="grid grid-cols-2 gap-3">
-                                        <div className="bg-[#070d14] p-4 rounded-2xl border border-[#162535]">
-                                            <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Всего игр</div>
-                                            <div className="text-2xl font-black text-slate-100 mt-1">{stats.totalGames}</div>
+                                        <div className="bg-[#08111a] px-3.5 py-2.5 rounded-xl border border-slate-800/80">
+                                            <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Всего игр</div>
+                                            <div className="text-lg font-black text-slate-100 mt-0.5">{stats.totalGames}</div>
                                         </div>
 
-                                        <div className="bg-[#070d14] p-4 rounded-2xl border border-[#162535]">
-                                            <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Ср. балл за игру</div>
-                                            <div className="text-2xl font-black text-emerald-400 mt-1">{stats.avgScore}</div>
-                                        </div>
-                                    </div>
-
-                                    {/* Распределение по командам (Красная vs Чёрная) */}
-                                    <div className="bg-[#070d14] p-4 rounded-2xl border border-[#162535]">
-                                        <div className="flex justify-between items-center text-xs font-bold mb-2">
-                                            <span className="text-rose-400">Красные ({stats.redTeamRatio}%)</span>
-                                            <span className="text-slate-300">Чёрные ({stats.blackTeamRatio}%)</span>
-                                        </div>
-                                        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden flex">
-                                            <div className="h-full bg-rose-500 transition-all duration-500" style={{ width: `${stats.redTeamRatio}%` }} />
-                                            <div className="h-full bg-slate-200 transition-all duration-500" style={{ width: `${stats.blackTeamRatio}%` }} />
+                                        <div className="bg-[#08111a] px-3.5 py-2.5 rounded-xl border border-slate-800/80">
+                                            <div className="text-[9px] uppercase font-bold text-slate-500 tracking-wider">Ср. балл за игру</div>
+                                            <div className="text-lg font-black text-emerald-400 mt-0.5">{stats.avgScore}</div>
                                         </div>
                                     </div>
 
                                 </div>
 
-                                {/* ПРАВАЯ КОЛОНКА: Двойной график и Детализация */}
-                                <div className="lg:col-span-7 flex flex-col gap-6">
+                                {/* ПРАВАЯ КОЛОНКА: График + Детализация + Любимая команда */}
+                                <div className="lg:col-span-7 flex flex-col gap-5">
 
-                                    <div className="text-sm font-bold text-slate-200 tracking-wide pb-2 border-b border-[#162535]">
+                                    <div className="text-xs font-bold text-slate-300 tracking-wide pb-2 border-b border-slate-800/80 flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                                         Статистика WinRate
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row items-center gap-6 bg-[#070d14] p-5 rounded-2xl border border-[#162535]">
+                                    <div className="flex flex-col sm:flex-row items-center gap-6 bg-[#08111a] p-4 rounded-xl border border-slate-800/80">
 
                                         {/* Двойной кольцевой график */}
                                         <DoubleDonutChart
@@ -434,12 +449,13 @@ export default function PlayerClient() {
                                             }}
                                         />
 
-                                        {/* Сетка показателей по ролям */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
+                                        {/* Сетка показателей с обновленными цветами */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
 
-                                            <div className="bg-[#0c1622] p-3 rounded-xl border border-[#162535] flex items-center justify-between">
+                                            {/* Зеленый для Мирного */}
+                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500 flex-shrink-0" />
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#34d399] flex-shrink-0 shadow-[0_0_6px_#34d399]" />
                                                     <span className="text-xs font-semibold text-slate-300">Мирный</span>
                                                 </div>
                                                 <span className="text-xs font-extrabold text-slate-100">
@@ -448,9 +464,10 @@ export default function PlayerClient() {
                                                 </span>
                                             </div>
 
-                                            <div className="bg-[#0c1622] p-3 rounded-xl border border-[#162535] flex items-center justify-between">
+                                            {/* Фирменный голубой для Мафии */}
+                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-slate-100 flex-shrink-0" />
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] flex-shrink-0 shadow-[0_0_6px_#38bdf8]" />
                                                     <span className="text-xs font-semibold text-slate-300">Мафия</span>
                                                 </div>
                                                 <span className="text-xs font-extrabold text-slate-100">
@@ -459,9 +476,10 @@ export default function PlayerClient() {
                                                 </span>
                                             </div>
 
-                                            <div className="bg-[#0c1622] p-3 rounded-xl border border-[#162535] flex items-center justify-between">
+                                            {/* Желтый для Шерифа */}
+                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-sky-400 flex-shrink-0" />
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#fbbf24] flex-shrink-0 shadow-[0_0_6px_#fbbf24]" />
                                                     <span className="text-xs font-semibold text-slate-300">Шериф</span>
                                                 </div>
                                                 <span className="text-xs font-extrabold text-slate-100">
@@ -470,9 +488,10 @@ export default function PlayerClient() {
                                                 </span>
                                             </div>
 
-                                            <div className="bg-[#0c1622] p-3 rounded-xl border border-[#162535] flex items-center justify-between">
+                                            {/* Фиолетово-пурпурный для Дона */}
+                                            <div className="bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 flex-shrink-0" />
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-[#c084fc] flex-shrink-0 shadow-[0_0_6px_#c084fc]" />
                                                     <span className="text-xs font-semibold text-slate-300">Дон</span>
                                                 </div>
                                                 <span className="text-xs font-extrabold text-slate-100">
@@ -481,10 +500,10 @@ export default function PlayerClient() {
                                                 </span>
                                             </div>
 
-                                            {/* Первоночь */}
-                                            <div className="sm:col-span-2 bg-[#0c1622] p-3 rounded-xl border border-[#162535] flex items-center justify-between">
+                                            {/* Черепок для Первоночи */}
+                                            <div className="sm:col-span-2 bg-[#0d1a29] p-2.5 rounded-lg border border-slate-800/60 flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-sm">💀</span>
+                                                    <span className="text-xs">💀</span>
                                                     <span className="text-xs font-semibold text-slate-300">Смерть в 1-ю ночь</span>
                                                 </div>
                                                 <span className="text-xs font-extrabold text-rose-400">
@@ -496,28 +515,55 @@ export default function PlayerClient() {
                                         </div>
                                     </div>
 
+                                    {/* НЕОНОВЫЙ БЛОК: Любимая команда (Красные vs Чёрные) */}
+                                    <div className="bg-[#08111a] p-4 rounded-xl border border-slate-800/80">
+                                        <div className="flex justify-between items-center text-xs font-bold mb-2.5">
+                                            <span className="text-emerald-400 flex items-center gap-1.5">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                                                Красные ({stats.redTeamRatio}%)
+                                            </span>
+                                            <span className="text-sky-400 flex items-center gap-1.5">
+                                                Чёрные ({stats.blackTeamRatio}%)
+                                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shadow-[0_0_6px_#38bdf8]" />
+                                            </span>
+                                        </div>
+
+                                        {/* Объёмный светящийся прогресс-бар */}
+                                        <div className="w-full h-2.5 rounded-full bg-slate-900 p-0.5 border border-slate-800 flex overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-l-full transition-all duration-700 shadow-[0_0_10px_rgba(52,211,153,0.5)]"
+                                                style={{ width: `${stats.redTeamRatio}%` }}
+                                            />
+                                            <div
+                                                className="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-r-full transition-all duration-700 shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+                                                style={{ width: `${stats.blackTeamRatio}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
                                 </div>
 
                             </div>
 
                             {/* ОТДЕЛЬНЫЙ РЯД ВНИЗУ: НАГРАДЫ И ДОСТИЖЕНИЯ */}
-                            <div className="pt-6 border-t border-[#162535]">
-                                <div className="text-sm font-bold text-slate-200 tracking-wide mb-4">
+                            <div className="pt-6 border-t border-slate-800/80">
+                                <div className="text-xs font-bold text-slate-300 tracking-wide mb-4 flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                                     Награды и достижения
                                 </div>
 
                                 {awards.length === 0 ? (
-                                    <div className="text-xs text-slate-500 py-6 text-center border border-dashed border-[#162535] rounded-2xl bg-[#070d14]">
+                                    <div className="text-xs text-slate-500 py-6 text-center border border-dashed border-slate-800 rounded-xl bg-[#08111a]/50">
                                         У игрока пока нет полученных наград
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                                         {awards.map((a) => (
                                             <div
                                                 key={a.id}
-                                                className="bg-[#070d14] border border-[#162535] p-4 rounded-2xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
+                                                className="bg-[#08111a] border border-slate-800 p-3.5 rounded-xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
                                             >
-                                                <div className="w-10 h-10 rounded-xl bg-slate-800/60 border border-slate-700 flex items-center justify-center text-sky-400 text-lg mb-2 font-black">
+                                                <div className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-700 flex items-center justify-center text-sky-400 text-base mb-2 font-black shadow-[0_0_10px_rgba(56,189,248,0.15)]">
                                                     ★
                                                 </div>
                                                 <div className="text-xs font-bold text-slate-200 line-clamp-1">
@@ -538,20 +584,21 @@ export default function PlayerClient() {
                     {/* ВКЛАДКА 2: ИГРЫ */}
                     {activeTab === 'games' && (
                         <div className="flex flex-col gap-4">
-                            <div className="text-sm font-bold text-slate-200 tracking-wide pb-2 border-b border-[#162535]">
+                            <div className="text-xs font-bold text-slate-300 tracking-wide pb-2 border-b border-slate-800/80 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                                 История сыгранных партий
                             </div>
 
                             {gameResults.length === 0 ? (
-                                <div className="text-xs text-slate-500 py-10 text-center border border-dashed border-[#162535] rounded-2xl bg-[#070d14]">
+                                <div className="text-xs text-slate-500 py-10 text-center border border-dashed border-slate-800 rounded-xl bg-[#08111a]/50">
                                     Данный игрок еще не участвовал в зарегистрированных играх.
                                 </div>
                             ) : (
-                                <div className="flex flex-col gap-2.5">
+                                <div className="flex flex-col gap-2">
                                     {gameResults.map((g, idx) => (
                                         <div
                                             key={idx}
-                                            className="bg-[#070d14] border border-[#162535] p-4 rounded-2xl flex items-center justify-between hover:border-slate-700 transition-colors"
+                                            className="bg-[#08111a] border border-slate-800/80 p-3.5 rounded-xl flex items-center justify-between hover:border-slate-700 transition-colors"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <span className="text-xs font-bold text-slate-500">#{idx + 1}</span>
