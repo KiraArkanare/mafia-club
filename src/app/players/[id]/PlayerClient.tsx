@@ -713,28 +713,42 @@ export default function PlayerClient() {
                                 <span>У игрока пока нет полученных наград</span>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                    {awards.map((a) => (
-                                        <div
-                                            key={a.id}
-                                            className="bg-[#08111a] border border-slate-800 p-3.5 rounded-xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
-                                        >
-                                            <div className="w-10 h-10 rounded-lg bg-slate-800/60 border border-slate-700/80 flex items-center justify-center mb-2 p-1 overflow-hidden shadow-[0_0_10px_rgba(56,189,248,0.15)]">
-                                                {a.awards?.icon_url ? (
-                                                    <img
-                                                        src={a.awards.icon_url}
-                                                        alt={a.awards.title || "Награда"}
-                                                        className="w-full h-full object-contain"
-                                                    />
-                                                ) : (
-                                                    <span className="text-sky-400 text-base font-black">★</span>
-                                                )}
-                                            </div>
-                                            <div className="text-xs font-bold text-slate-200 line-clamp-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+                                {awards.map((a) => (
+                                    <div
+                                        key={a.id}
+                                        className="group relative bg-[#08111a] border border-slate-800 rounded-2xl p-3.5 flex flex-col items-center justify-between overflow-hidden hover:border-sky-500/50 hover:shadow-[0_0_20px_rgba(56,189,248,0.15)] transition-all duration-300 min-h-[140px]"
+                                    >
+                                        {/* 1. Блок с увеличенной иконкой награды */}
+                                        <div className="w-full flex-1 flex items-center justify-center p-2">
+                                            {a.awards?.icon_url ? (
+                                                <img
+                                                    src={a.awards.icon_url}
+                                                    alt={a.awards.title || "Награда"}
+                                                    className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_0_12px_rgba(56,189,248,0.3)] transition-transform duration-300 group-hover:scale-110"
+                                                />
+                                            ) : (
+                                                <span className="text-sky-400 text-3xl font-black drop-shadow-[0_0_10px_rgba(56,189,248,0.4)] transition-transform duration-300 group-hover:scale-110">
+                                                    ★
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* 2. Дата получения (всегда видима внизу) */}
+                                        <div className="text-[10px] font-semibold text-slate-500 tracking-wider mt-1 z-10 group-hover:text-slate-400 transition-colors">
+                                            {new Date(a.awarded_at).toLocaleDateString("ru-RU")}
+                                        </div>
+
+                                        {/* 3. Выплывающий при наведении стильный оверлей с названием и описанием */}
+                                        <div className="absolute inset-0 bg-[#070e17]/95 backdrop-blur-md p-3 flex flex-col items-center justify-center text-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto border border-sky-500/30 rounded-2xl">
+                                            <div className="text-xs font-black text-sky-300 tracking-tight leading-snug drop-shadow-[0_0_8px_rgba(56,189,248,0.4)]">
                                                 {a.awards?.title || "Награда"}
                                             </div>
-                                        <div className="text-[10px] text-slate-500 mt-1">
-                                            {new Date(a.awarded_at).toLocaleDateString("ru-RU")}
+                                            {a.awards?.description && (
+                                                <div className="text-[10px] text-slate-400 mt-1.5 line-clamp-2 leading-relaxed">
+                                                    {a.awards.description}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
