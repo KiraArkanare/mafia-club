@@ -714,17 +714,25 @@ export default function PlayerClient() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                {awards.map((a) => (
-                                    <div
-                                        key={a.id}
-                                        className="bg-[#08111a] border border-slate-800 p-3.5 rounded-xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
-                                    >
-                                        <div className="w-9 h-9 rounded-lg bg-slate-800/60 border border-slate-700 flex items-center justify-center text-sky-400 text-base mb-2 font-black shadow-[0_0_10px_rgba(56,189,248,0.15)]">
-                                            ★
-                                        </div>
-                                        <div className="text-xs font-bold text-slate-200 line-clamp-1">
-                                            {a.awards?.title || "Награда"}
-                                        </div>
+                                    {awards.map((a) => (
+                                        <div
+                                            key={a.id}
+                                            className="bg-[#08111a] border border-slate-800 p-3.5 rounded-xl flex flex-col items-center text-center group hover:border-sky-500/40 transition-all"
+                                        >
+                                            <div className="w-10 h-10 rounded-lg bg-slate-800/60 border border-slate-700/80 flex items-center justify-center mb-2 p-1 overflow-hidden shadow-[0_0_10px_rgba(56,189,248,0.15)]">
+                                                {a.awards?.icon_url ? (
+                                                    <img
+                                                        src={a.awards.icon_url}
+                                                        alt={a.awards.title || "Награда"}
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                ) : (
+                                                    <span className="text-sky-400 text-base font-black">★</span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs font-bold text-slate-200 line-clamp-1">
+                                                {a.awards?.title || "Награда"}
+                                            </div>
                                         <div className="text-[10px] text-slate-500 mt-1">
                                             {new Date(a.awarded_at).toLocaleDateString("ru-RU")}
                                         </div>
