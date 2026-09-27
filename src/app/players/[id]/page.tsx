@@ -1,6 +1,9 @@
 ﻿import { supabase } from "@/lib/supabase";
 import PlayerClient from "./PlayerClient";
 
+export const dynamicParams = true;
+export const revalidate = 0;
+
 export async function generateStaticParams() {
     const { data: players } = await supabase
         .from('players')
